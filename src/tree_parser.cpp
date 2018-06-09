@@ -12,6 +12,13 @@ namespace ascii = boost::spirit::ascii;
 namespace phx = boost::phoenix;
 namespace phxarg = phx::placeholders;
 
+/**
+ * Given a root event and a list of subtrees, builds a parent tree.
+ *
+ * @param event Root event for the parent tree.
+ * @param children List of subtrees to graft to the root.
+ * @return Resulting parent tree.
+ */
 tree<Event> build_tree(Event event, std::vector<tree<Event>> children)
 {
     tree<Event> result{event};
@@ -25,19 +32,38 @@ tree<Event> build_tree(Event event, std::vector<tree<Event>> children)
     return result;
 }
 
+/**
+ * Pseudo-Newick tree grammar describing a language of synteny
+ * trees labelled with events.
+ */
 template<typename Iterator>
 struct NewickTreeGrammar : qi::grammar<Iterator, ascii::space_type, ::tree<Event>()>
 {
     NewickTreeGrammar() : NewickTreeGrammar::base_type(tree, "NewickTreeGrammar")
     {
+        // A tree is composed of parenthesized a root node and of a list of
+        // child nodes
         tree = ('(' > event > children > ')')
-            [qi::_val = phx::bind(&build_tree, qi::_1, qi::_2)];
+                            [qi::_val = phx::bind(&build_tree, qi::_1, qi::_2)];
 
+        // Those child nodes are actually trees themselves, and a node may have
+        // no child. If so, it is called a leaf
         children = *tree;
-        event =
-            (type >> ':' > synteny)
-                [qi::_val = phx::construct<Event>(qi::_1, qi::_2)]
-            | (type)[qi::_val = phx::construct<Event>(qi::_1)];
+
+        // The nodes of the tree are labelled with events that describe what
+        // occurred at that point. The general format for an event is
+        // `event_type : synteny`, where `event_type` describes what kind
+        // of event it is and `synteny` is the ordered block of genes at that
+        // point. Either `event_type` or `: synteny` needs to be present:
+        //
+        //  — If `event_type` is omitted, it is assumed that the node is a leaf
+        //    and thus the event is classified as type `None`.
+        //  – If `: synteny` is omitted, the event is associated with an
+        //    empty synteny (which means that the actual synteny is unknown).
+        event = (type >> ':' > synteny)
+                             [qi::_val = phx::construct<Event>(qi::_1, qi::_2)]
+            | (':' > synteny)        [qi::_val = phx::construct<Event>(qi::_1)]
+            | (type)                 [qi::_val = phx::construct<Event>(qi::_1)];
 
         type.add
             ("leaf", Event::Type::None)
@@ -45,7 +71,11 @@ struct NewickTreeGrammar : qi::grammar<Iterator, ascii::space_type, ::tree<Event
             ("spec", Event::Type::Speciation)
             ("loss", Event::Type::Loss);
 
+        // A synteny is an ordered block of genes
         synteny = gene > *gene;
+
+        // A gene name is a string of any characters, except whitespace,
+        // parentheses or colons which are used to delimit genes
         gene = qi::lexeme[+(qi::char_ - qi::char_(":() \t\r\n"))];
 
         tree.name("tree");
