@@ -5,7 +5,8 @@ set(CMAKE_CXX_STANDARD 14)
 
 set(SOURCES
     src/Event.cpp
-    src/Synteny.cpp)
+    src/Synteny.cpp
+    src/tree_parser.cpp)
 
 set(TEST_SOURCES
     src/ExtendedNumber.test.cpp

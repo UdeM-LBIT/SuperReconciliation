@@ -1,5 +1,6 @@
 #include "Event.hpp"
 #include "ExtendedNumber.hpp"
+#include "tree_parser.hpp"
 #include "util.hpp"
 #include <iostream>
 #include <limits>
@@ -265,29 +266,22 @@ int small_philogeny_for_syntenies(tree<Event>& tree, const Synteny& base)
 
 int main()
 {
-    // TODO: passer l’arbre en input
+    std::string ancestral_data;
+    std::getline(std::cin, ancestral_data);
 
-    tree<Event> test_tree{Event{Event::Type::Speciation}};
-    auto node = std::begin(test_tree);
+    std::istringstream ancestral_tok{ancestral_data};
+    std::istream_iterator<Gene> it{ancestral_tok};
+    std::istream_iterator<Gene> end;
 
-    auto node_0 = test_tree.append_child(node, Event{Event::Type::Speciation});
-    auto node_00 = test_tree.append_child(node_0, Event{Synteny{"a", "d"}});
-    auto node_01 = test_tree.append_child(node_0, Event{Event::Type::Duplication});
-    auto node_010 = test_tree.append_child(node_01, Event{Synteny{"a", "b", "c"}});
-    auto node_011 = test_tree.append_child(node_01, Event{Synteny{"a", "b", "d"}});
-    auto node_1 = test_tree.append_child(node, Event{Event::Type::Duplication});
-    auto node_10 = test_tree.append_child(node_1, Event{Event::Type::Speciation});
-    auto node_100 = test_tree.append_child(node_10, Event{Synteny{"a", "b", "c", "d"}});
-    auto node_101 = test_tree.append_child(node_10, Event{Synteny{"a", "b", "c"}});
-    auto node_11 = test_tree.append_child(node_1, Event{Event::Type::Speciation});
-    auto node_110 = test_tree.append_child(node_11, Event{Synteny{"b", "c", "d"}});
-    auto node_111 = test_tree.append_child(node_11, Event{Event::Type::Speciation});
-    auto node_1110 = test_tree.append_child(node_111, Event{Synteny{"b", "d"}});
-    auto node_1111 = test_tree.append_child(node_111, Event{Synteny{"d"}});
+    Synteny ancestral(it, end);
 
-    small_philogeny_for_syntenies(test_tree, Synteny{"a", "b", "c", "d"});
+    std::ostringstream tree_newick;
+    tree_newick << std::cin.rdbuf();
 
-    print_tree_dot<Event>(test_tree, std::cout, [](std::ostream& out, const Event& event)
+    tree<Event> tree = newick_to_tree(tree_newick.str());
+    small_philogeny_for_syntenies(tree, ancestral);
+
+    print_tree_dot<Event>(tree, std::cout, [](std::ostream& out, const Event& event)
     {
         out << "shape=\"";
 
@@ -312,65 +306,4 @@ int main()
 
         out << "\", label=\"" << event.getSynteny() << "\"";
     });
-
-    /* tree<Event> simple_tree{Event{Event::Type::Duplication, Synteny{"x", "x'", "x''"}}}; */
-
-    /**
-     * (d (n : x x' x'') (s (n : x) (d (n : x x'') (n : x x')))
-     */
-
-    /* { */
-    /*     auto node = std::begin(simple_tree); */
-    /*     auto node_0 = simple_tree.append_child(node, Event{Synteny{"x", "x'", "x''"}}); */
-    /*     auto node_1 = simple_tree.append_child(node, Event{Event::Type::Speciation}); */
-    /*     auto node_10 = simple_tree.append_child(node_1, Event{Synteny{"x"}}); */
-    /*     auto node_11 = simple_tree.append_child(node_1, Event{Event::Type::Duplication}); */
-    /*     auto node_110 = simple_tree.append_child(node_11, Event{Synteny{"x", "x''"}}); */
-    /*     auto node_111 = simple_tree.append_child(node_11, Event{Synteny{"x", "x'"}}); */
-    /*     super_reconciliation(simple_tree); */
-    /* } */
-
-    // Ne fonctionne pas car ordre incohérent
-    /* tree<Event> applic_tree{Event{Event::Type::Speciation, Synteny{"h", "s", "a", "n"}}}; */
-
-    /* { */
-    /*     auto node = std::begin(applic_tree); */
-    /*     auto node_0 = applic_tree.append_child(node, Event{Event::Type::Duplication}); */
-    /*     auto node_00 = applic_tree.append_child(node_0, Event{Event::Type::Duplication}); */
-    /*     auto node_000 = applic_tree.append_child(node_00, Event{Event::Type::Duplication}); */
-    /*     auto node_0000 = applic_tree.append_child(node_000, Event{Event::Type::Speciation}); */
-    /*     auto node_00000 = applic_tree.append_child(node_0000, Event{Event::Type::Speciation}); */
-    /*     auto node_000000 = applic_tree.append_child(node_00000, Event{Event::Type::Speciation}); */
-    /*     auto node_0000000 = applic_tree.append_child(node_000000, Event{Synteny{"s", "a", "n", "h"}}); */
-    /*     auto node_0000001 = applic_tree.append_child(node_000000, Event{Synteny{"h", "n", "a", "s"}}); */
-    /*     auto node_000001 = applic_tree.append_child(node_00000, Event{Synteny{"a", "s", "h", "n"}}); */
-    /*     auto node_00001 = applic_tree.append_child(node_0000, Event{Synteny{"h", "s", "a", "n"}}); */
-    /*     auto node_0001 = applic_tree.append_child(node_000, Event{Event::Type::Speciation}); */
-    /*     auto node_00010 = applic_tree.append_child(node_0001, Event{Event::Type::Speciation}); */
-    /*     auto node_000100 = applic_tree.append_child(node_00010, Event{Synteny{"a"}}); */
-    /*     auto node_000101 = applic_tree.append_child(node_00010, Event{Synteny{"n"}}); */
-    /*     auto node_00011 = applic_tree.append_child(node_0001, Event{Event::Type::Speciation}); */
-    /*     auto node_000110 = applic_tree.append_child(node_00011, Event{Synteny{"a", "n"}}); */
-    /*     auto node_000111 = applic_tree.append_child(node_00011, Event{Event::Type::Speciation}); */
-    /*     auto node_0001110 = applic_tree.append_child(node_000111, Event{Synteny{"a", "n"}}); */
-    /*     auto node_0001111 = applic_tree.append_child(node_000111, Event{Synteny{"n", "a"}}); */
-    /*     auto node_001 = applic_tree.append_child(node_00, Event{Event::Type::Speciation}); */
-    /*     auto node_0010 = applic_tree.append_child(node_001, Event{Synteny{"n", "h", "a"}}); */
-    /*     auto node_0011 = applic_tree.append_child(node_001, Event{Event::Type::Speciation}); */
-    /*     auto node_00110 = applic_tree.append_child(node_0011, Event{Synteny{"a", "n", "h"}}); */
-    /*     auto node_00111 = applic_tree.append_child(node_0011, Event{Event::Type::Speciation}); */
-    /*     auto node_001110 = applic_tree.append_child(node_00111, Event{Synteny{"a", "h", "n"}}); */
-    /*     auto node_001111 = applic_tree.append_child(node_00111, Event{Synteny{"a"}}); */
-    /*     auto node_01 = applic_tree.append_child(node_0, Event{Event::Type::Speciation}); */
-    /*     auto node_010 = applic_tree.append_child(node_01, Event{Synteny{"s", "n", "a", "h"}}); */
-    /*     auto node_011 = applic_tree.append_child(node_01, Event{Event::Type::Speciation}); */
-    /*     auto node_0110 = applic_tree.append_child(node_011, Event{Synteny{"n", "a", "s", "h"}}); */
-    /*     auto node_0111 = applic_tree.append_child(node_011, Event{Event::Type::Speciation}); */
-    /*     auto node_01110 = applic_tree.append_child(node_0111, Event{Synteny{"h", "n", "s", "a"}}); */
-    /*     auto node_01111 = applic_tree.append_child(node_0111, Event{Synteny{"h", "n", "s", "a"}}); */
-    /*     auto node_1 = applic_tree.append_child(node, Event{Event::Type::Speciation}); */
-    /*     auto node_10 = applic_tree.append_child(node_1, Event{Synteny{"n"}}); */
-    /*     auto node_11 = applic_tree.append_child(node_1, Event{Synteny{"h", "a"}}); */
-    /*     super_reconciliation(applic_tree); */
-    /* } */
 }

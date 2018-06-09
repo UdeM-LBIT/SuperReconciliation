@@ -1,3 +1,6 @@
+#ifndef UTIL_HPP
+#define UTIL_HPP
+
 #include <functional>
 #include <tree.hh>
 
@@ -50,3 +53,4 @@ void print_tree_dot(const tree<T>& tree, std::ostream& out, std::function<void(s
     out << "}\n";
 }
 
+#endif // UTIL_HPP

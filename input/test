@@ -1,0 +1,23 @@
+a b c d
+(spec
+    (spec
+        (leaf : a d)
+        (dupl
+            (leaf : a b c)
+            (leaf : a b d)
+        )
+    )
+    (dupl
+        (spec
+            (leaf : a b c d)
+            (leaf : a b c)
+        )
+        (spec
+            (leaf : b c d)
+            (spec
+                (leaf : b d)
+                (leaf : d)
+            )
+        )
+    )
+)

@@ -1,0 +1,56 @@
+h s a n
+(spec
+    (dupl
+        (dupl
+            (dupl
+                (spec
+                    (spec
+                        (spec
+                            (leaf : s a n h)
+                            (leaf : h n a s)
+                        )
+                        (leaf : a s h n)
+                    )
+                    (leaf : h s a n)
+                )
+                (spec
+                    (spec
+                        (leaf : a)
+                        (leaf : n)
+                    )
+                    (spec
+                        (leaf : a n)
+                        (spec
+                            (leaf : a n)
+                            (leaf : n a)
+                        )
+                    )
+                )
+            )
+            (spec
+                (leaf : n h a)
+                (spec
+                    (leaf : a n h)
+                    (spec
+                        (leaf : a h n)
+                        (leaf : a)
+                    )
+                )
+            )
+        )
+        (spec
+            (leaf : s n a h)
+            (spec
+                (leaf : n a s h)
+                (spec
+                    (leaf : h n s a)
+                    (leaf : h n s a)
+                )
+            )
+        )
+    )
+    (spec
+        (leaf : n)
+        (leaf : h a)
+    )
+)
