@@ -8,6 +8,40 @@
 #include <tree.hh>
 
 /**
+ * Make sure that, in an event tree, the distance in terms of losses between
+ * a parent and one of its children is at most 1 for loss nodes and at most
+ * 0 (ie. they have the same synteny) for other nodes.
+ * @param tree Tree on which to check the condition.
+ * @param parent Parent node.
+ * @param child Child node.
+ * @param substring Whether to check distances in substring mode or not.
+ */
+void resolve_losses(
+    ::tree<Event>& tree,
+    ::tree<Event>::iterator_base parent, ::tree<Event>::iterator_base child,
+    bool substring)
+{
+    auto synteny_parent = parent->getSynteny();
+    auto synteny_child = child->getSynteny();
+
+    // Only loss nodes are allowed to have at most a distance of one with their
+    // child syntenies. Other nodes must have exactly the same synteny as their
+    // children
+    if ((child->getType() == Event::Type::Loss
+            && synteny_parent.distanceTo(synteny_child, substring) > 1)
+        || (child->getType() != Event::Type::Loss
+            && synteny_parent.distanceTo(synteny_child, substring) > 0))
+    {
+        // If this condition fails for a node, introduce an intermediary loss
+        // node between the parent and its faulty child. Recursively resolve
+        // discrepancies so that, ultimately, the condition is fulfilled
+        auto synteny_reconciled = synteny_parent.reconcile(synteny_child, 1, substring).second;
+        child = tree.wrap(child, Event(Event::Type::Loss, synteny_reconciled));
+        resolve_losses(tree, parent, child, substring);
+    }
+}
+
+/**
  * Compute synteny assignations of internal nodes in a synteny tree so as to
  * minimize the total cost in duplications and segmental losses. This is the
  * “Small Philogeny Problem” applied to syntenies.
@@ -47,17 +81,10 @@ int small_philogeny_for_syntenies(tree<Event>& tree, const Synteny& base)
         Synteny synteny_left;
         Synteny synteny_right;
 
-        Candidate()
-        : cost(0)
-        {}
-
-        Candidate(Cost cost)
-        : cost(cost)
-        {}
-
-        Candidate(Cost cost, Synteny synteny_left, Synteny synteny_right)
-        : cost(cost), synteny_left(synteny_left), synteny_right(synteny_right)
-        {}
+        // If this is a duplication, the following flags mark whether one
+        // of the children were partially duplicated
+        bool partial_left = false;
+        bool partial_right = false;
     };
 
     // List of all possible candidates derived from the ancestral synteny
@@ -171,6 +198,8 @@ int small_philogeny_for_syntenies(tree<Event>& tree, const Synteny& base)
                 auto best_partial_total
                     = best_partial_left_cost + best_total_right_cost;
 
+                Candidate info;
+
                 switch (it->getType())
                 {
                 case Event::Type::Speciation:
@@ -179,8 +208,9 @@ int small_philogeny_for_syntenies(tree<Event>& tree, const Synteny& base)
                     // they are necessarily due to segmental losses following
                     // the speciation event and they have to be counted in the
                     // total cost
-                    candidates.emplace(candidate, Candidate{best_total,
-                        best_total_left_synteny, best_total_right_synteny});
+                    info.cost = best_total;
+                    info.synteny_left = best_total_left_synteny;
+                    info.synteny_right = best_total_right_synteny;
                     break;
 
                 case Event::Type::Duplication:
@@ -192,20 +222,25 @@ int small_philogeny_for_syntenies(tree<Event>& tree, const Synteny& base)
                     if (best_total <= best_total_partial
                         && best_total <= best_partial_total)
                     {
-                        candidates.emplace(candidate, Candidate{1 + best_total,
-                            best_total_left_synteny, best_total_right_synteny});
+                        info.cost = 1 + best_total;
+                        info.synteny_left = best_total_left_synteny;
+                        info.synteny_right = best_total_right_synteny;
                     }
                     else if (best_total_partial <= best_total
                         && best_total_partial <= best_partial_total)
                     {
-                        candidates.emplace(candidate, Candidate{1 + best_total_partial,
-                            best_total_left_synteny, best_partial_right_synteny});
+                        info.cost = 1 + best_total_partial;
+                        info.synteny_left = best_total_left_synteny;
+                        info.synteny_right = best_partial_right_synteny;
+                        info.partial_right = true;
                     }
                     else if (best_partial_total <= best_total
                         && best_partial_total <= best_total_partial)
                     {
-                        candidates.emplace(candidate, Candidate{1 + best_partial_total,
-                            best_partial_left_synteny, best_total_right_synteny});
+                        info.cost = 1 + best_partial_total;
+                        info.synteny_left = best_partial_left_synteny;
+                        info.partial_left = true;
+                        info.synteny_right = best_total_right_synteny;
                     }
                     break;
 
@@ -217,11 +252,13 @@ int small_philogeny_for_syntenies(tree<Event>& tree, const Synteny& base)
                     throw std::invalid_argument{message.str()};
                 }
                 }
-            }
+
+                candidates.emplace(candidate, info);
+            } // end loop on candidates
         }
 
         candidates_per_node.emplace(&*it, candidates);
-    }
+    } // end postorder traversal
 
     // Now that the whole map of candidates has been filled in, in particular
     // for the root node, the optimal candidate for the root node fully
@@ -250,17 +287,20 @@ int small_philogeny_for_syntenies(tree<Event>& tree, const Synteny& base)
 
     // It only remains to propagate the best assignations starting from
     // the root node
-    for (auto it = tree.begin(); it != tree.end(); ++it)
+    for (auto parent = tree.begin(); parent != tree.end(); ++parent)
     {
-        if (tree.number_of_children(it) == 2)
+        if (tree.number_of_children(parent) == 2)
         {
-            Event* child_left = &*tree.child(it, 0);
-            Event* child_right = &*tree.child(it, 1);
+            auto synteny_root = parent->getSynteny();
+            auto child_left = tree.child(parent, 0);
+            auto child_right = tree.child(parent, 1);
+            auto info = candidates_per_node.at(&*parent).at(synteny_root);
 
-            child_left->setSynteny(candidates_per_node
-                .at(&*it).at(it->getSynteny()).synteny_left);
-            child_right->setSynteny(candidates_per_node
-                .at(&*it).at(it->getSynteny()).synteny_right);
+            child_left->setSynteny(info.synteny_left);
+            resolve_losses(tree, parent, child_left, info.partial_left);
+
+            child_right->setSynteny(info.synteny_right);
+            resolve_losses(tree, parent, child_right, info.partial_right);
         }
     }
 

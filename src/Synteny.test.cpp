@@ -47,3 +47,16 @@ TEST_CASE("Synteny distance computation")
     REQUIRE(s1.distanceTo(s2, true) == 0);
     REQUIRE_THROWS_AS(s3.distanceTo(s0), std::invalid_argument);
 }
+
+TEST_CASE("Synteny reconciliation")
+{
+    Synteny s0 = {"a", "b", "c", "d"};
+    Synteny s1 = {"a", "d"};
+    Synteny s2 = {"a", "b", "c"};
+    Synteny s3 = {"a", "c"};
+
+    REQUIRE(s0.reconcile(s1, 1).second == Synteny{"a", "d"});
+    REQUIRE(s0.reconcile(s2, 1).second == Synteny{"a", "b", "c"});
+    REQUIRE(s0.reconcile(s3, 1).second == Synteny{"a", "c", "d"});
+    REQUIRE(s2.reconcile(s3, 1).second == Synteny{"a", "c"});
+}

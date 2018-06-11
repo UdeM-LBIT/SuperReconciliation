@@ -1,0 +1,23 @@
+a b c d
+(spec
+    (spec
+        (: a c)
+        (dupl
+            (: a b c)
+            (: a c)
+        )
+    )
+    (dupl
+        (spec
+            (: a b c d)
+            (: a b c)
+        )
+        (spec
+            (: b c d)
+            (spec
+                (: b d)
+                (: d)
+            )
+        )
+    )
+)
