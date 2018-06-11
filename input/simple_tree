@@ -1,0 +1,13 @@
+(dupl
+    (spec
+        (: x x' x'')
+        (loss)
+    )
+    (spec
+        (: x)
+        (dupl
+            (: x x'')
+            (: x x')
+        )
+    )
+)

@@ -1,10 +1,10 @@
 a b c d
 (spec
     (spec
-        (: a c)
+        (: a d)
         (dupl
             (: a b c)
-            (: a c)
+            (: a b d)
         )
     )
     (dupl

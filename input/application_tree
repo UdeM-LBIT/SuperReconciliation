@@ -1,0 +1,55 @@
+(spec
+    (dupl
+        (dupl
+            (dupl
+                (spec
+                    (spec
+                        (spec
+                            (: s a n h)
+                            (: h n a s)
+                        )
+                        (: a s h n)
+                    )
+                    (: h s a n)
+                )
+                (spec
+                    (spec
+                        (: a)
+                        (: n)
+                    )
+                    (spec
+                        (: a n)
+                        (spec
+                            (: a n)
+                            (: n a)
+                        )
+                    )
+                )
+            )
+            (spec
+                (: n h a)
+                (spec
+                    (: a n h)
+                    (spec
+                        (: a h n)
+                        (: a)
+                    )
+                )
+            )
+        )
+        (spec
+            (: s n a h)
+            (spec
+                (: n a s h)
+                (spec
+                    (: h n s a)
+                    (: h n s a)
+                )
+            )
+        )
+    )
+    (spec
+        (: n)
+        (: h a)
+    )
+)
