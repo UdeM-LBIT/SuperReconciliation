@@ -160,3 +160,75 @@ std::string event_tree_to_string(const tree<Event>& tree)
 {
     return event_subtree_to_string(tree, std::begin(tree));
 }
+
+std::string event_to_graphviz(const Event& event)
+{
+    std::string result = "shape=\"";
+
+    switch (event.getType())
+    {
+    case Event::Type::None:
+        result += "none";
+        break;
+
+    case Event::Type::Duplication:
+        result += "box";
+        break;
+
+    case Event::Type::Speciation:
+        result += "oval";
+        break;
+
+    case Event::Type::Loss:
+        result += "diamond";
+        break;
+    }
+
+    result += "\", label=\"";
+    std::ostringstream synteny;
+    synteny << event.getSynteny();
+    result += synteny.str() + "\"";
+
+    return result;
+}
+
+std::string event_subtree_to_graphviz(
+    const tree<Event>& tree,
+    typename ::tree<Event>::iterator root)
+{
+    std::string result;
+
+    for (typename ::tree<Event>::sibling_iterator it = tree.begin(root);
+            it != tree.end(root); ++it)
+    {
+        result += "    "
+            + std::to_string(reinterpret_cast<unsigned long long int>(&*root))
+            + " -> "
+            + std::to_string(reinterpret_cast<unsigned long long int>(&*it))
+            + ";\n";
+        result += event_subtree_to_graphviz(tree, it);
+    }
+
+    return result;
+}
+
+std::string event_tree_to_graphviz(const tree<Event>& tree)
+{
+    std::string result = "digraph {\n";
+
+    for (const auto& node : tree)
+    {
+        result += "    "
+            + std::to_string(reinterpret_cast<unsigned long long int>(&node))
+            + " [" + event_to_graphviz(node) + "];\n";
+    }
+
+    for (typename ::tree<Event>::sibling_iterator it = tree.begin();
+            it != tree.end(); ++it)
+    {
+        result += event_subtree_to_graphviz(tree, it);
+    }
+
+    result += "}\n";
+    return result;
+}

@@ -14,5 +14,6 @@ set(TEST_SOURCES
     src/test.cpp)
 
 include_directories(lib)
+add_executable(event_tree_viz ${SOURCES} src/event_tree_viz.cpp)
 add_executable(small_philogeny ${SOURCES} src/small_philogeny.cpp)
 add_executable(test ${SOURCES} ${TEST_SOURCES})

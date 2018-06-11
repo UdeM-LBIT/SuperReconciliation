@@ -22,6 +22,21 @@
  */
 tree<Event> string_to_event_tree(const std::string&);
 
+/**
+ * Converts a labeled synteny tree to a pseude-Newick-formatted string
+ * representation.
+ *
+ * @param tree Input tree.
+ * @return Resulting representation of the tree.
+ */
 std::string event_tree_to_string(const tree<Event>&);
+
+/**
+ * Converts a labeled synteny tree to a Graphviz representation.
+ *
+ * @param tree Input tree.
+ * @return Resulting Graphviz representation.
+ */
+std::string event_tree_to_graphviz(const tree<Event>&);
 
 #endif // TREE_PARSER_HPP

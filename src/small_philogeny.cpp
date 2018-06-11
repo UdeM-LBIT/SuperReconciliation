@@ -1,6 +1,7 @@
 #include "Event.hpp"
 #include "EventTree.hpp"
 #include "ExtendedNumber.hpp"
+#include <cstdlib>
 #include <iostream>
 #include <limits>
 #include <map>
@@ -283,4 +284,6 @@ int main()
     tree<Event> tree = string_to_event_tree(tree_string.str());
     small_philogeny_for_syntenies(tree, ancestral);
     std::cout << event_tree_to_string(tree) << '\n';
+
+    return EXIT_SUCCESS;
 }
