@@ -22,3 +22,29 @@ void Event::setSynteny(const Synteny& synteny) noexcept
 {
     this->synteny = synteny;
 }
+
+std::ostream& operator<<(std::ostream& out, const Event::Type& type)
+{
+    switch (type)
+    {
+    case Event::Type::None:
+        return out << "None";
+
+    case Event::Type::Duplication:
+        return out << "Duplication";
+
+    case Event::Type::Speciation:
+        return out << "Speciation";
+
+    case Event::Type::Loss:
+        return out << "Loss";
+    }
+
+    return out << "[Invalid type]";
+}
+
+std::ostream& operator<<(std::ostream& out, const Event& event)
+{
+    return out << "Event {\n\ttype = " << event.getType() << "\n\tsynteny = "
+        << event.getSynteny() << "\n}";
+}

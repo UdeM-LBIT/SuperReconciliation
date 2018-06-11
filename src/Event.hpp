@@ -58,4 +58,20 @@ private:
     Synteny synteny;
 };
 
+/**
+ * Print an event type on an output stream.
+ * @param out Output stream to print on.
+ * @param number Event type to print.
+ * @return Used output stream.
+ */
+std::ostream& operator<<(std::ostream&, const Event::Type&);
+
+/**
+ * Print an event on an output stream.
+ * @param out Output stream to print on.
+ * @param number Event to print.
+ * @return Used output stream.
+ */
+std::ostream& operator<<(std::ostream&, const Event&);
+
 #endif // EVENT_HPP
