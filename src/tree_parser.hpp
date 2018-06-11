@@ -5,7 +5,7 @@
 #include <tree.hh>
 
 /**
- * Builds a labelled synteny tree based on a pseudo-Newick-formatted string
+ * Builds a labeled synteny tree based on a pseudo-Newick-formatted string
  * of characters. The grammar is:
  *
  * tree ::= '(' event children ')'
@@ -17,7 +17,7 @@
  *
  * @param input Input string to parse.
  * @throws If the input string does not conform to the above syntax.
- * @return Resulting labelled synteny tree.
+ * @return Resulting labeled synteny tree.
  */
 tree<Event> newick_to_tree(const std::string& input);
 

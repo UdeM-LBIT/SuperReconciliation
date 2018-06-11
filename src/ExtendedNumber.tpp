@@ -52,7 +52,7 @@ ExtendedNumber<T>::operator T() const
     if (this->infinity_flag)
     {
         std::ostringstream message;
-        message << "Impossible d’évaluer " << *this << ".";
+        message << *this << " has no value.";
         throw std::domain_error{message.str()};
     }
 
@@ -152,7 +152,7 @@ ExtendedNumber<T>& ExtendedNumber<T>::operator+=(const ExtendedNumber& rhs)
     }
 
     std::ostringstream message;
-    message << "L’opération " << *this << " + " << rhs << " est indéfinie.";
+    message << "Operation " << *this << " + " << rhs << " is undefined.";
     throw std::domain_error{message.str()};
 }
 
@@ -179,7 +179,7 @@ ExtendedNumber<T>& ExtendedNumber<T>::operator-=(const ExtendedNumber& rhs)
     }
 
     std::ostringstream message;
-    message << "L’opération " << *this << " − " << rhs << " est indéfinie.";
+    message << "Operation " << *this << " − " << rhs << " is undefined.";
     throw std::domain_error{message.str()};
 }
 
@@ -215,7 +215,7 @@ ExtendedNumber<T>& ExtendedNumber<T>::operator*=(const ExtendedNumber& rhs)
     }
 
     std::ostringstream message;
-    message << "L’opération " << *this << " × " << rhs << " est indéfinie.";
+    message << "Operation " << *this << " × " << rhs << " is undefined.";
     throw std::domain_error{message.str()};
 }
 
@@ -243,7 +243,7 @@ ExtendedNumber<T>& ExtendedNumber<T>::operator/=(const ExtendedNumber& rhs)
     }
 
     std::ostringstream message;
-    message << "L’opération " << *this << " ÷ " << rhs << " est indéfinie.";
+    message << "Operation " << *this << " ÷ " << rhs << " is undefined.";
     throw std::domain_error{message.str()};
 }
 

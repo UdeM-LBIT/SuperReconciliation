@@ -2,7 +2,7 @@
 #include <catch.hpp>
 #include <set>
 
-TEST_CASE("Génération des sous-séquences")
+TEST_CASE("Subsequence generation")
 {
     Synteny s0 = {};
     Synteny s1 = {"x"};
@@ -30,7 +30,7 @@ TEST_CASE("Génération des sous-séquences")
     REQUIRE(s2_sub_set == std::set<Synteny>{{}, {"a"}, {"b"}, {"c"}, {"a", "b"}, {"b", "c"}, {"a", "c"}, {"a", "b", "c"}});
 }
 
-TEST_CASE("Calcul des distances entre synténies")
+TEST_CASE("Synteny distance computation")
 {
     Synteny s0 = {"1", "2", "3", "4", "5", "6", "7", "8", "9"};
     Synteny s1 = {"1", "4", "5", "6"};

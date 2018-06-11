@@ -7,7 +7,7 @@
 #include <vector>
 
 /**
- * Synténie : suite ordonnée de gènes.
+ * A synteny is an ordered block of genes.
  */
 class Synteny : public std::list<Gene>
 {
@@ -15,39 +15,36 @@ public:
     using std::list<Gene>::list;
 
     /**
-     * Génère la liste des sous-séquences possibles de cette synténie.
-     *
-     * @return Liste de synténies qui sont des sous-séquences de celle-ci.
+     * Generate all possible subsequences for this synteny.
+     * @return List of all possible syntenies that are subsequences.
      */
     std::vector<Synteny> generateSubsequences() const;
 
     /**
-     * Détermine le nombre minimum de pertes segmentales nécessaires pour
-     * transformer cette synténie en une autre.
-     *
-     * @example Quatre pertes segmentales (ou deux en mode `substring`) :
+     * Compute the minimum number of segmental losses required to turn this
+     * synteny into another one.
+     * @example Four segemental losses (or two with the `substring` flag) are
+     * required to turn the `from` synteny into the `to` synteny:
      *
      * from = (a b c d e f a b c d e f)
      *             | | |   | |     |
      * to   = (    c d e   a b     e  )
-     *
-     * @param to Nouvelle synténie.
-     * @param [substring=false] Si vrai, ne décompte pas les pertes segmentales
-     * initiales et terminales. Dans ce cas, le résultat est le nombre minimum de
-     * pertes segmentales nécessaires pour transformer une sous-chaîne de `from`
-     * en `to`.
-     * @return Nombre minimum de pertes segmentales nécessaires pour
-     * transformer `from` en `to`.
+     * @param to New synteny.
+     * @param [substring=false] When set to true, does not count the initial
+     * and terminal segmental losses. In this case, the result is the minimum
+     * number of segmental losses required to turn a substring of this synteny
+     * into `to`.
+     * @return Minimum number of segmental losses required to turn this synteny
+     * into the `to` synteny.
      */
     int distanceTo(const Synteny&, bool = false) const;
 };
 
 /**
- * Affiche une synténie sur un flux de sortie.
- *
- * @param out Flux de sortie à utiliser.
- * @param synteny Synténie à afficher.
- * @return Flux de sortie utilisé.
+ * Print a synteny on an output stream.
+ * @param out Output stream to print on.
+ * @param synteny Synteny to print.
+ * @return Used output stream.
  */
 std::ostream& operator<<(std::ostream&, const Synteny&);
 

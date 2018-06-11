@@ -57,7 +57,7 @@ struct NewickTreeGrammar : qi::grammar<Iterator, ascii::space_type, ::tree<Event
         // point. Either `event_type` or `: synteny` needs to be present:
         //
         //  — If `event_type` is omitted, it is assumed that the node is a leaf
-        //    and thus the event is classified as type `None`.
+        //    and thus the event is set to type `Event::Type::None`.
         //  – If `: synteny` is omitted, the event is associated with an
         //    empty synteny (which means that the actual synteny is unknown).
         event = (type >> ':' > synteny)

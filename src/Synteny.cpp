@@ -29,53 +29,53 @@ int Synteny::distanceTo(const Synteny& to, bool substring) const
     auto it_from = std::cbegin(*this);
     auto it_to = std::cbegin(to);
 
-    // Nombre de pertes segmentales nécessaires pour transformer la
-    // synténie [begin_from, it_from) en [begin_to, it_to)
+    // Minimum number of required segmental losses to turn the
+    // [begin_from, it_from) synteny into [begin_to, it_to)
     int result = 0;
 
-    // Vaut vrai si et seulement si les gènes précédant it_from et it_to
-    // dans leur synténie respective sont égaux. À l’initialisation, on
-    // considère que oui seulement si on veut compter les éventuelles
-    // pertes segmentales initiales (seulement hors du mode `substring`)
+    // Is true iff the genes that precede it_from and it_to in their
+    // respective syntenies are equal. At initialization time, we consider
+    // that it is true only if we want to take initial segmental losses
+    // into account (only when `substring` is false)
     bool coincides = !substring;
 
-    // Parcours des deux synténies en même temps pour identifier les
-    // segments de gènes perdus
+    // Iterate on both syntenies to identify lost gene segments
     while (it_from != std::cend(*this) && it_to != std::cend(to))
     {
         if (*it_from != *it_to)
         {
             if (coincides)
             {
-                // Démarrage d’un nouveau segment de perte
+                // Start a new segmental loss
                 ++result;
                 coincides = false;
             }
 
-            // Avancement dans la synténie originelle jusqu’à réidentifier
-            // un segment conservé
+            // Advance in the original synteny until the two syntenies
+            // coincide again
             ++it_from;
         }
         else
         {
-            // Progression au sein d’un segment conservé
+            // Advance into a preserved segment
             coincides = true;
             ++it_from;
             ++it_to;
         }
     }
 
-    // Si la synténie originelle se finit avant la nouvelle synténie, la
-    // nouvelle synténie n’est pas une sous-séquence de la synténie originelle
+    // If the aligned original synteny ends before the new one, the new synteny
+    // is not a subsequence of the original
     if (it_from == std::cend(*this) && it_to != std::cend(to))
     {
-        throw std::invalid_argument{"La synténie en paramètre doit être "
-            "une sous-séquence de la synténie utilisée."};
+        std::ostringstream message;
+        message << "The new synteny (" << to << ") must be a subsequence of "
+            "the current one (" << *this << ").";
+        throw std::invalid_argument{message.str()};
     }
 
-    // Si la synténie originelle se finit après la nouvelle synténie, un
-    // un segment final a été perdu. On décompte ce segment final seulement
-    // hors du mode `substring`.
+    // If the aligned original synteny ends after the new one, a final segment
+    // was lost. We count this segment only if `substring` is false
     if (it_from != std::cend(*this) && it_to == std::cend(to) && !substring)
     {
         ++result;

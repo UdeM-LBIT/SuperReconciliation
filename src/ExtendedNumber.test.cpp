@@ -1,17 +1,17 @@
 #include "ExtendedNumber.hpp"
 #include <catch.hpp>
 
-TEST_CASE("Supporte les opérations sur les nombres réels")
+TEST_CASE("Supports operations on numbers")
 {
     ExtendedNumber<int> a = 10, b = 8;
     ExtendedNumber<double> c = 22, d = 7;
 
-    SECTION("Conversion de type")
+    SECTION("Casting")
     {
         REQUIRE(static_cast<int>(a) == 10);
     }
 
-    SECTION("Comparaisons internes")
+    SECTION("Internal comparisons")
     {
         REQUIRE_FALSE(a < b);
         REQUIRE_FALSE(a == b);
@@ -21,7 +21,7 @@ TEST_CASE("Supporte les opérations sur les nombres réels")
         REQUIRE(a >= b);
     }
 
-    SECTION("Comparaisons avec le type enveloppé")
+    SECTION("Comparisons with wrapped type")
     {
         REQUIRE(8 < a);
         REQUIRE(a < 12);
@@ -37,7 +37,7 @@ TEST_CASE("Supporte les opérations sur les nombres réels")
         REQUIRE(a >= 9);
     }
 
-    SECTION("Arithmétique immuable")
+    SECTION("Immutable arithmetic")
     {
         REQUIRE(a + b == 18);
         REQUIRE(a - b == 2);
@@ -51,7 +51,7 @@ TEST_CASE("Supporte les opérations sur les nombres réels")
         REQUIRE(a == +a);
     }
 
-    SECTION("Arithmétique modifiante")
+    SECTION("Mutable arithmetic")
     {
         a += b;
 
@@ -75,13 +75,13 @@ TEST_CASE("Supporte les opérations sur les nombres réels")
     }
 }
 
-TEST_CASE("Supporte les opérations sur les réels étendus")
+TEST_CASE("Supports operations between numbers and infinities")
 {
     ExtendedNumber<int> a = -10, b = 0, c = 10;
     ExtendedNumber<int> pinf = ExtendedNumber<int>::positiveInfinity();
     ExtendedNumber<int> ninf = ExtendedNumber<int>::negativeInfinity();
 
-    SECTION("Représentation de l’infini")
+    SECTION("Correctly represents infinities")
     {
         REQUIRE_FALSE(a.isInfinity());
         REQUIRE_FALSE(a.isPositiveInfinity());
@@ -96,13 +96,13 @@ TEST_CASE("Supporte les opérations sur les réels étendus")
         REQUIRE(ninf.isNegativeInfinity());
     }
 
-    SECTION("Conversion de type")
+    SECTION("Casting")
     {
         REQUIRE_THROWS_AS(static_cast<int>(pinf), std::domain_error);
         REQUIRE_THROWS_AS(static_cast<int>(ninf), std::domain_error);
     }
 
-    SECTION("Comparaisons internes")
+    SECTION("Internal comparisons")
     {
         REQUIRE(a < pinf);
         REQUIRE(b < pinf);
@@ -131,7 +131,7 @@ TEST_CASE("Supporte les opérations sur les réels étendus")
         REQUIRE(pinf != ninf);
     }
 
-    SECTION("Arithmétique immuable")
+    SECTION("Immutable arithmetic")
     {
         REQUIRE(pinf + a == ExtendedNumber<int>::positiveInfinity());
         REQUIRE(pinf + b == ExtendedNumber<int>::positiveInfinity());

@@ -4,71 +4,63 @@
 #include <ostream>
 
 /**
- * Type nombre, étendu avec les infinis positif et négatif. Ce type gère
- * de façon appropriée les opérations impliquant des infinis. Des exceptions
- * de type std::domain_error sont levées pour les opérations indéfinies.
+ * Extended number type that can correctly represent positive and negative
+ * infinity. This type handles appropriately all operations involving
+ * infinities. `std::domain_error` exceptions are thrown whenever the user
+ * tries to perform an undefined operation.
  */
 template<typename T>
 class ExtendedNumber
 {
 public:
     /**
-     * Instancie un nombre étendu avec pour valeur 0.
+     * Create an extended number with value 0.
      */
     ExtendedNumber();
 
     /**
-     * Instancie un nombre étendu avec une valeur donnée.
-     *
-     * @param value Valeur à donner au nombre.
+     * Create an extended number with the given value.
+     * @param value Value to give to the number.
      */
     ExtendedNumber(const T&);
 
     /**
-     * Instancie l’infini positif.
-     *
-     * @return Instance représentant l’infini positif.
+     * Create an instance representing positive infinity.
+     * @return Instance representing positive infinity.
      */
     static ExtendedNumber positiveInfinity() noexcept;
 
     /**
-     * Instancie l’infini négatif.
-     *
-     * @return Instance représentant l’infini négatif.
+     * Create an instance representing negative infinity.
+     * @return Instance representing negative infinity.
      */
     static ExtendedNumber negativeInfinity() noexcept;
 
     /**
-     * Vérifie si l’instance actuelle est l’infini positif.
-     *
-     * @return Vrai si et seulement si l’instance actuelle est l’infini
-     * positif.
+     * Check whether the current instance is positive infinity.
+     * @return True iff this is positive infinity.
      */
     bool isPositiveInfinity() const noexcept;
 
     /**
-     * Vérifie si l’instance actuelle est l’infini négatif.
-     *
-     * @return Vrai si et seulement si l’instance actuelle est l’infini
-     * négatif.
+     * Check whether the current instance is negative infinity.
+     * @return True iff this is negative infinity.
      */
     bool isNegativeInfinity() const noexcept;
 
     /**
-     * Vérifie si l’instance actuelle code un infini.
-     *
-     * @return Vrai si et seulement si l’instance actuelle code un infini.
+     * Check whether the current instance is infinity.
+     * @return True iff this is infinity.
      */
     bool isInfinity() const noexcept;
 
     /**
-     * Convertit explicitement un nombre étendu en son type natif.
-     *
-     * @throws std::domain_error Si le nombre étendu code un infini.
+     * Explicitly convert an extended number towards its wrapped type.
+     * @throws std::domain_error If this is infinity.
      */
     explicit operator T() const;
 
-    // Opérateurs de comparaison entre nombres étendus
+    // Comparison operators between extended numbers
     bool operator<(const ExtendedNumber&) const noexcept;
     bool operator==(const ExtendedNumber&) const noexcept;
     bool operator!=(const ExtendedNumber&) const noexcept;
@@ -76,61 +68,53 @@ public:
     bool operator>(const ExtendedNumber&) const noexcept;
     bool operator>=(const ExtendedNumber&) const noexcept;
 
-    // Plus et moins unaires
+    // Unary plus and minus
     ExtendedNumber operator+() const noexcept;
     ExtendedNumber operator-() const noexcept;
 
     /**
-     * Ajoute au nombre actuel un autre nombre étendu et stocke le résultat
-     * dans le nombre actuel.
-     *
-     * @param rhs Second opérande de l’opération.
-     * @throws std::domain_error Pour l’ajout de deux infinis opposés.
-     * @return Instance actuelle.
+     * Add another extended number to this and stores the result into this.
+     * @param rhs Second operand.
+     * @throws std::domain_error When trying to add opposite infinities.
+     * @return Current instance.
      */
     ExtendedNumber& operator+=(const ExtendedNumber&);
     ExtendedNumber operator+(const ExtendedNumber&) const;
 
     /**
-     * Retranche au nombre actuel un autre nombre étendu et stocke le résultat
-     * dans le nombre actuel.
-     *
-     * @param rhs Second opérande de l’opération.
-     * @throws std::domain_error Pour la soustraction de deux infinis.
-     * @return Instance actuelle.
+     * Subtract another extended number from this and stores the result into this.
+     * @param rhs Second operand.
+     * @throws std::domain_error When trying to subtract same-sign infinities.
+     * @return Current instance.
      */
     ExtendedNumber& operator-=(const ExtendedNumber&);
     ExtendedNumber operator-(const ExtendedNumber&) const;
 
     /**
-     * Multiplie le nombre actuel par un autre nombre étendu et stocke le
-     * résultat dans le nombre actuel.
-     *
-     * @param rhs Second opérande de l’opération.
-     * @throws std::domain_error Pour la multiplication d’un infini par zéro.
-     * @return Instance actuelle.
+     * Multiply another extended number to this and stores the result into this.
+     * @param rhs Second operand.
+     * @throws std::domain_error When trying to multiply zero with infinity.
+     * @return Current instance.
      */
     ExtendedNumber& operator*=(const ExtendedNumber&);
     ExtendedNumber operator*(const ExtendedNumber&) const;
 
     /**
-     * Divise le nombre actuel par un autre nombre étendu et stocke le résultat
-     * dans le nombre actuel.
-     *
-     * @param rhs Second opérande de l’opération.
-     * @throws std::domain_error Pour la division par zéro.
-     * @return Instance actuelle.
+     * Divide another extended number to this and stores the result into this.
+     * @param rhs Second operand.
+     * @throws std::domain_error When trying to add opposite infinities.
+     * @return Current instance.
      */
     ExtendedNumber& operator/=(const ExtendedNumber&);
     ExtendedNumber operator/(const ExtendedNumber&) const;
 
 private:
-    // Valeur du nombre. S’il s’agit d’un infini, seul le bit de signe
-    // est significatif et indique le signe de l’infini.
+    // Wrapped value. If infinity, only the sign bit is significative and it
+    // indicates whether this is positive or negative infinity.
     T value;
 
-    // Vrai si et seulement si l’instance code un infini, et dans ce cas
-    // le signe de l’infini est le signe de `value`.
+    // True iff this is infinity. In this case, the sign of `value` encodes
+    // the sign of infinity.
     bool infinity_flag = false;
 };
 
@@ -165,11 +149,10 @@ template<typename T>
 ExtendedNumber<T> operator/(const T&, const ExtendedNumber<T>&);
 
 /**
- * Affiche un nombre étendu sur un flux de sortie.
- *
- * @param out Flux de sortie à utiliser.
- * @param number Nombre étendu à afficher.
- * @return Flux de sortie utilisé.
+ * Print an extended number on an output stream.
+ * @param out Output stream to print on.
+ * @param number Extended number to print.
+ * @return Used output stream.
  */
 template<typename T>
 std::ostream& operator<<(std::ostream&, const ExtendedNumber<T>&);

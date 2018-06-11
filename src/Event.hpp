@@ -4,63 +4,57 @@
 #include "Synteny.hpp"
 
 /**
- * Événement s’étant produit au niveau d’un nœud d’un super-arbre de synténies.
+ * An event that happened at a node in a synteny tree.
  */
 class Event
 {
 public:
     /**
-     * Type d’événement.
+     * Kind of event.
      */
     enum class Type
     {
-        // Aucun événement : il s’agit d’un nœud feuille
-        None,
-
-        // Événement de duplication segmentale de la synténie
-        Duplication,
-
-        // Événement de spéciation de la synténie
-        Speciation,
-
-        // Événement de perte segmentale de la synténie
-        Loss
+        None, //< No event: applicable for leaf nodes
+        Duplication, //< Segmental duplication event
+        Speciation, //< Speciation event
+        Loss, //< Segmental loss event
     };
 
     /**
-     * Instancie un événement de type « aucun » sur une synténie vide.
+     * Create an empty event (type `Event::Type::None` and empty synteny).
      */
     Event();
 
     /**
-     * Instancie un événement de type « aucun » sur une synténie.
-     *
-     * @param synteny Synténie de la feuille en question.
-     */
-    Event(Synteny);
-
-    /**
-     * Instancie un événement sur une synténie vide.
-     *
-     * @param type Type de l’événement à instancier.
-     */
-    Event(Type);
-
-    /**
-     * Instancie un événement.
-     *
-     * @param type Type de l’événement à instancier.
-     * @param synteny Synténie sur laquelle s’est produit l’événement.
+     * Create an event.
+     * @param type Event type to associate with the node.
+     * @param synteny Synteny to associate with the node.
      */
     Event(Type, Synteny);
 
-    // Accesseurs
+    /**
+     * Get the event’s type.
+     * @return Event type.
+     */
     Type getType() const noexcept;
+
+    /**
+     * Get the event’s synteny.
+     * @return Event synteny.
+     */
     const Synteny& getSynteny() const noexcept;
+
+    /**
+     * Set the event’s synteny.
+     * @param synteny New synteny to associate with the node.
+     */
     void setSynteny(const Synteny&) noexcept;
 
 private:
+    // Type of event
     Type type;
+
+    // Synteny associated with the node
     Synteny synteny;
 };
 
