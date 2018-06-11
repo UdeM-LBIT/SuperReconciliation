@@ -1,6 +1,9 @@
 x x' x''
 (dupl
-    (: x x' x'')
+    (spec
+        (: x x' x'')
+        (loss)
+    )
     (spec
         (: x)
         (dupl
