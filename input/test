@@ -1,22 +1,22 @@
 a b c d
 (spec
     (spec
-        (leaf : a d)
+        (: a d)
         (dupl
-            (leaf : a b c)
-            (leaf : a b d)
+            (: a b c)
+            (: a b d)
         )
     )
     (dupl
         (spec
-            (leaf : a b c d)
-            (leaf : a b c)
+            (: a b c d)
+            (: a b c)
         )
         (spec
-            (leaf : b c d)
+            (: b c d)
             (spec
-                (leaf : b d)
-                (leaf : d)
+                (: b d)
+                (: d)
             )
         )
     )

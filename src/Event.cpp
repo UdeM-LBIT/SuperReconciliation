@@ -4,14 +4,6 @@ Event::Event()
 : type(Type::None)
 {}
 
-Event::Event(Synteny synteny)
-: type(Type::None), synteny(synteny)
-{}
-
-Event::Event(Type type)
-: type(type)
-{}
-
 Event::Event(Type type, Synteny synteny)
 : type(type), synteny(synteny)
 {}

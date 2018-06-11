@@ -6,51 +6,51 @@ h s a n
                 (spec
                     (spec
                         (spec
-                            (leaf : s a n h)
-                            (leaf : h n a s)
+                            (: s a n h)
+                            (: h n a s)
                         )
-                        (leaf : a s h n)
+                        (: a s h n)
                     )
-                    (leaf : h s a n)
+                    (: h s a n)
                 )
                 (spec
                     (spec
-                        (leaf : a)
-                        (leaf : n)
+                        (: a)
+                        (: n)
                     )
                     (spec
-                        (leaf : a n)
+                        (: a n)
                         (spec
-                            (leaf : a n)
-                            (leaf : n a)
+                            (: a n)
+                            (: n a)
                         )
                     )
                 )
             )
             (spec
-                (leaf : n h a)
+                (: n h a)
                 (spec
-                    (leaf : a n h)
+                    (: a n h)
                     (spec
-                        (leaf : a h n)
-                        (leaf : a)
+                        (: a h n)
+                        (: a)
                     )
                 )
             )
         )
         (spec
-            (leaf : s n a h)
+            (: s n a h)
             (spec
-                (leaf : n a s h)
+                (: n a s h)
                 (spec
-                    (leaf : h n s a)
-                    (leaf : h n s a)
+                    (: h n s a)
+                    (: h n s a)
                 )
             )
         )
     )
     (spec
-        (leaf : n)
-        (leaf : h a)
+        (: n)
+        (: h a)
     )
 )

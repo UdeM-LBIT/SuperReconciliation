@@ -62,11 +62,11 @@ struct NewickTreeGrammar : qi::grammar<Iterator, ascii::space_type, ::tree<Event
         //    empty synteny (which means that the actual synteny is unknown).
         event = (type >> ':' > synteny)
                              [qi::_val = phx::construct<Event>(qi::_1, qi::_2)]
-            | (':' > synteny)        [qi::_val = phx::construct<Event>(qi::_1)]
-            | (type)                 [qi::_val = phx::construct<Event>(qi::_1)];
+            | (type)      [qi::_val = phx::construct<Event>(qi::_1, Synteny{})]
+            | (':' > synteny)
+                  [qi::_val = phx::construct<Event>(Event::Type::None, qi::_1)];
 
         type.add
-            ("leaf", Event::Type::None)
             ("dupl", Event::Type::Duplication)
             ("spec", Event::Type::Speciation)
             ("loss", Event::Type::Loss);

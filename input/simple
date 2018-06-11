@@ -1,11 +1,11 @@
 x x' x''
 (dupl
-    (leaf : x x' x'')
+    (: x x' x'')
     (spec
-        (leaf : x)
+        (: x)
         (dupl
-            (leaf : x x'')
-            (leaf : x x')
+            (: x x'')
+            (: x x')
         )
     )
 )
