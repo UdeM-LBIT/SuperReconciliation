@@ -168,6 +168,7 @@ std::string event_to_graphviz(const Event& event)
     switch (event.getType())
     {
     case Event::Type::None:
+    case Event::Type::Loss:
         result += "none";
         break;
 
@@ -177,10 +178,6 @@ std::string event_to_graphviz(const Event& event)
 
     case Event::Type::Speciation:
         result += "oval";
-        break;
-
-    case Event::Type::Loss:
-        result += "diamond";
         break;
     }
 
@@ -203,7 +200,7 @@ std::string event_subtree_to_graphviz(
     {
         result += "    "
             + std::to_string(reinterpret_cast<unsigned long long int>(&*root))
-            + " -> "
+            + " -- "
             + std::to_string(reinterpret_cast<unsigned long long int>(&*it))
             + ";\n";
         result += event_subtree_to_graphviz(tree, it);
@@ -214,7 +211,7 @@ std::string event_subtree_to_graphviz(
 
 std::string event_tree_to_graphviz(const tree<Event>& tree)
 {
-    std::string result = "digraph {\n";
+    std::string result = "graph {\n";
 
     for (const auto& node : tree)
     {
