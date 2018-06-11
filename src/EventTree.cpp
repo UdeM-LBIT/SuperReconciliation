@@ -1,5 +1,4 @@
-#include "tree_parser.hpp"
-#include "Event.hpp"
+#include "EventTree.hpp"
 #include <tree.hh>
 #include <boost/spirit/include/qi.hpp>
 #include <boost/spirit/include/phoenix_bind.hpp>
@@ -37,9 +36,9 @@ tree<Event> build_tree(Event event, std::vector<tree<Event>> children)
  * trees labelled with events.
  */
 template<typename Iterator>
-struct NewickTreeGrammar : qi::grammar<Iterator, ascii::space_type, ::tree<Event>()>
+struct EventTreeGrammar : qi::grammar<Iterator, ascii::space_type, ::tree<Event>()>
 {
-    NewickTreeGrammar() : NewickTreeGrammar::base_type(tree, "NewickTreeGrammar")
+    EventTreeGrammar() : EventTreeGrammar::base_type(tree, "EventTreeGrammar")
     {
         // A tree is composed of parenthesized a root node and of a list of
         // child nodes
@@ -94,14 +93,70 @@ struct NewickTreeGrammar : qi::grammar<Iterator, ascii::space_type, ::tree<Event
     qi::rule<Iterator, ascii::space_type, Gene()> gene;
 };
 
-tree<Event> newick_to_tree(const std::string& input)
+tree<Event> string_to_event_tree(const std::string& input)
 {
     tree<Event> result;
-    NewickTreeGrammar<std::string::const_iterator> grammar;
+    EventTreeGrammar<std::string::const_iterator> grammar;
 
     auto start = std::begin(input);
     auto end = std::end(input);
 
     qi::phrase_parse(start, end, grammar, ascii::space, result);
     return result;
+}
+
+std::string event_to_string(const Event& event)
+{
+    std::string result;
+
+    switch (event.getType())
+    {
+    case Event::Type::None:
+        // no-op
+        break;
+
+    case Event::Type::Duplication:
+        result += "dupl ";
+        break;
+
+    case Event::Type::Speciation:
+        result += "spec ";
+        break;
+
+    case Event::Type::Loss:
+        result += "loss ";
+        break;
+    }
+
+    if (!event.getSynteny().empty())
+    {
+        result += ": ";
+        std::ostringstream synteny;
+        synteny << event.getSynteny();
+        result += synteny.str();
+    }
+
+    return result;
+}
+
+std::string event_subtree_to_string(
+    const tree<Event>& tree,
+    typename ::tree<Event>::iterator root)
+{
+    std::string result;
+    result += "(" + event_to_string(*root);
+
+    for (typename ::tree<Event>::sibling_iterator it = tree.begin(root);
+            it != tree.end(root); ++it)
+    {
+        result += " " + event_subtree_to_string(tree, it);
+    }
+
+    result += ")";
+    return result;
+}
+
+std::string event_tree_to_string(const tree<Event>& tree)
+{
+    return event_subtree_to_string(tree, std::begin(tree));
 }

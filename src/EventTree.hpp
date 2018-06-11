@@ -2,6 +2,7 @@
 #define TREE_PARSER_HPP
 
 #include "Event.hpp"
+#include <string>
 #include <tree.hh>
 
 /**
@@ -19,6 +20,8 @@
  * @throws If the input string does not conform to the above syntax.
  * @return Resulting labeled synteny tree.
  */
-tree<Event> newick_to_tree(const std::string& input);
+tree<Event> string_to_event_tree(const std::string&);
+
+std::string event_tree_to_string(const tree<Event>&);
 
 #endif // TREE_PARSER_HPP

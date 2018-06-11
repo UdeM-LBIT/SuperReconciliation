@@ -1,4 +1,5 @@
 #include "Synteny.hpp"
+#include <sstream>
 #include <stdexcept>
 
 std::vector<Synteny> Synteny::generateSubsequences() const

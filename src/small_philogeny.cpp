@@ -1,7 +1,6 @@
 #include "Event.hpp"
+#include "EventTree.hpp"
 #include "ExtendedNumber.hpp"
-#include "tree_parser.hpp"
-#include "util.hpp"
 #include <iostream>
 #include <limits>
 #include <map>
@@ -278,35 +277,10 @@ int main()
 
     Synteny ancestral(it, end);
 
-    std::ostringstream tree_newick;
-    tree_newick << std::cin.rdbuf();
+    std::ostringstream tree_string;
+    tree_string << std::cin.rdbuf();
 
-    tree<Event> tree = newick_to_tree(tree_newick.str());
+    tree<Event> tree = string_to_event_tree(tree_string.str());
     small_philogeny_for_syntenies(tree, ancestral);
-
-    print_tree_dot<Event>(tree, std::cout, [](std::ostream& out, const Event& event)
-    {
-        out << "shape=\"";
-
-        switch (event.getType())
-        {
-        case Event::Type::None:
-            out << "none";
-            break;
-
-        case Event::Type::Duplication:
-            out << "box";
-            break;
-
-        case Event::Type::Speciation:
-            out << "oval";
-            break;
-
-        case Event::Type::Loss:
-            out << "diamond";
-            break;
-        }
-
-        out << "\", label=\"" << event.getSynteny() << "\"";
-    });
+    std::cout << event_tree_to_string(tree) << '\n';
 }
