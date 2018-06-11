@@ -68,6 +68,14 @@ public:
      */
     std::pair<int, Synteny> reconcile(
         const Synteny&, ExtendedNumber<int>, bool = false) const;
+
+    /**
+     * Create a string representation of the differences between this synteny
+     * and a target subsequence synteny.
+     * @param target Target subsequence synteny.
+     * @return String representation of the differences from this to `target`.
+     */
+    std::string difference(const Synteny&) const;
 };
 
 /**

@@ -161,31 +161,41 @@ std::string event_tree_to_string(const tree<Event>& tree)
     return event_subtree_to_string(tree, std::begin(tree));
 }
 
-std::string event_to_graphviz(const Event& event)
+std::string event_to_graphviz(const Event& event, Synteny parent)
 {
-    std::string result = "shape=\"";
+    std::string result;
 
     switch (event.getType())
     {
     case Event::Type::None:
+        result += "shape=\"none\", ";
+        break;
+
     case Event::Type::Loss:
-        result += "none";
+        result += "shape=\"none\", fontcolor=\"red\", ";
         break;
 
     case Event::Type::Duplication:
-        result += "box";
+        result += "shape=\"box\", ";
         break;
 
     case Event::Type::Speciation:
-        result += "oval";
+        result += "shape=\"oval\", ";
         break;
     }
 
-    result += "\", label=\"";
-    std::ostringstream synteny;
-    synteny << event.getSynteny();
-    result += synteny.str() + "\"";
+    result += "label=\"";
 
+    if (event.getType() == Event::Type::Loss)
+    {
+        result += parent.difference(event.getSynteny());
+    }
+    else
+    {
+        result += event.getSynteny().difference(event.getSynteny());
+    }
+
+    result += "\"";
     return result;
 }
 
@@ -213,11 +223,23 @@ std::string event_tree_to_graphviz(const tree<Event>& tree)
 {
     std::string result = "graph {\n";
 
-    for (const auto& node : tree)
+    for (
+        auto it = tree.begin();
+        it != tree.end();
+        ++it)
     {
+        auto parent_node = tree.parent(it);
+        Synteny parent_synteny = it->getSynteny();
+
+        // If we are considering the root of the tree, it has no parent node
+        if (tree.is_valid(parent_node))
+        {
+            parent_synteny = parent_node->getSynteny();
+        }
+
         result += "    "
-            + std::to_string(reinterpret_cast<unsigned long long int>(&node))
-            + " [" + event_to_graphviz(node) + "];\n";
+            + std::to_string(reinterpret_cast<unsigned long long int>(&*it))
+            + " [" + event_to_graphviz(*it, parent_synteny) + "];\n";
     }
 
     for (typename ::tree<Event>::sibling_iterator it = tree.begin();

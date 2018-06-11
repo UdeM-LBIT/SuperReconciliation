@@ -123,17 +123,81 @@ std::pair<int, Synteny> Synteny::reconcile(
     return std::make_pair(amount, base);
 }
 
-std::ostream& operator<<(std::ostream& out, const Synteny& synteny)
+std::string Synteny::difference(const Synteny& target) const
 {
-    for (auto it = std::begin(synteny); it != std::end(synteny); ++it)
-    {
-        out << *it;
+    auto it_this = std::cbegin(*this);
+    auto it_target = std::cbegin(target);
 
-        if (std::next(it) != std::end(synteny))
+    std::string result;
+    bool coincides = true;
+
+    while (it_this != std::cend(*this) && it_target != std::cend(target))
+    {
+        if (*it_this != *it_target)
         {
-            out << " ";
+            if (coincides)
+            {
+                coincides = false;
+                result += "[ ";
+            }
+        }
+        else
+        {
+            if (!coincides)
+            {
+                coincides = true;
+                result += "] ";
+            }
+
+            ++it_target;
+        }
+
+        result += *it_this;
+        ++it_this;
+
+        if (it_this != std::cend(*this))
+        {
+            result += " ";
         }
     }
 
-    return out;
+    // If the aligned original synteny ends before the new one, the new synteny
+    // is not a subsequence of the original
+    if (it_this == std::cend(*this) && it_target != std::cend(target))
+    {
+        std::ostringstream message;
+        message << "The new synteny (" << target << ") must be a subsequence of"
+            " the current one (" << *this << ").";
+        throw std::invalid_argument{message.str()};
+    }
+
+    // If the aligned original synteny ends after the new one, a final segment
+    // was lost
+    if (it_this != std::cend(*this) && it_target == std::cend(target))
+    {
+        if (coincides)
+        {
+            result += "[ ";
+        }
+
+        while (it_this != std::cend(*this))
+        {
+            result += *it_this;
+            ++it_this;
+
+            if (it_this != std::cend(*this))
+            {
+                result += " ";
+            }
+        }
+
+        result += " ]";
+    }
+
+    return result;
+}
+
+std::ostream& operator<<(std::ostream& out, const Synteny& synteny)
+{
+    return out << synteny.difference(synteny);
 }
