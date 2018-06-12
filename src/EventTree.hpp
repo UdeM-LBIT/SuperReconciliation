@@ -17,7 +17,8 @@
  * gene ::= [^:() \t\r\n]+
  *
  * @param input Input string to parse.
- * @throws If the input string does not conform to the above syntax.
+ * @throws std::invalid_argument If the input string does not conform to the
+ * above syntax.
  * @return Resulting labeled synteny tree.
  */
 tree<Event> string_to_event_tree(const std::string&);

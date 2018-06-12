@@ -95,13 +95,57 @@ struct EventTreeGrammar : qi::grammar<Iterator, ascii::space_type, ::tree<Event>
 
 tree<Event> string_to_event_tree(const std::string& input)
 {
+    using Iterator = std::string::const_iterator;
+
     tree<Event> result;
-    EventTreeGrammar<std::string::const_iterator> grammar;
+    EventTreeGrammar<Iterator> grammar;
 
     auto start = std::begin(input);
     auto end = std::end(input);
+    bool success = false;
 
-    qi::phrase_parse(start, end, grammar, ascii::space, result);
+    try
+    {
+        success = qi::phrase_parse(start, end, grammar, ascii::space, result);
+    }
+    catch (const qi::expectation_failure<Iterator>& err)
+    {
+        std::ostringstream message;
+        message << "Syntax error: expected <" << err.what_.tag << "> at"
+            " character "
+            << std::to_string(std::distance(std::cbegin(input), err.first))
+            << " but found ";
+
+        if (err.first == std::cend(input))
+        {
+            message << "<end>";
+        }
+        else
+        {
+            std::string sub(err.first, err.last);
+            message << "\"" << sub << "\"";
+        }
+
+        throw std::invalid_argument{message.str()};
+    }
+
+    if (!success)
+    {
+        throw std::invalid_argument{"Syntax error: cannot parse input"};
+    }
+
+    if (start != end)
+    {
+        std::ostringstream message;
+        std::string sub(start, end);
+
+        message << "Syntax error: expected <end> at character "
+            << std::to_string(std::distance(std::cbegin(input), start))
+            << " but found \"" << sub << "\"";
+
+        throw std::invalid_argument{message.str()};
+    }
+
     return result;
 }
 
@@ -237,6 +281,7 @@ std::string event_tree_to_graphviz(const tree<Event>& tree)
             parent_synteny = parent_node->getSynteny();
         }
 
+        // We use a node’s address in memory as a unique identifier
         result += "    "
             + std::to_string(reinterpret_cast<unsigned long long int>(&*it))
             + " [" + event_to_graphviz(*it, parent_synteny) + "];\n";

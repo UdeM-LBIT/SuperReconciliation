@@ -1,6 +1,7 @@
 #include "Event.hpp"
 #include "EventTree.hpp"
 #include "ExtendedNumber.hpp"
+#include "util.hpp"
 #include <cstdlib>
 #include <iostream>
 #include <limits>
@@ -59,6 +60,11 @@ int small_philogeny_for_syntenies(tree<Event>& tree, const Synteny& base)
     // Exact solution for the problem by a dynamic programming approach,
     // implementing the method described in “Reconstructing the History of
     // Syntenies Through Super-Reconciliation” (El-Mabrouk et al., 2015)
+
+    if (tree.empty())
+    {
+        return 0;
+    }
 
     // Costs (number of segmental duplications and losses) are modeled by an
     // extended integer which enables correct infinity representation
@@ -309,21 +315,38 @@ int small_philogeny_for_syntenies(tree<Event>& tree, const Synteny& base)
 
 int main()
 {
+    if (is_interactive())
+    {
+        std::cerr << "Input the ancestral synteny followed "
+            "by a line feed:\n";
+    }
+
     std::string ancestral_data;
     std::getline(std::cin, ancestral_data);
 
     std::istringstream ancestral_tok{ancestral_data};
     std::istream_iterator<Gene> it{ancestral_tok};
     std::istream_iterator<Gene> end;
-
     Synteny ancestral(it, end);
+
+    if (is_interactive())
+    {
+        std::cerr << "\nInput the tree to be reconciled and "
+            "finish with Ctrl-D:\n";
+    }
 
     std::ostringstream tree_string;
     tree_string << std::cin.rdbuf();
 
     tree<Event> tree = string_to_event_tree(tree_string.str());
     small_philogeny_for_syntenies(tree, ancestral);
-    std::cout << event_tree_to_string(tree) << '\n';
 
+    if (is_interactive())
+    {
+        std::cerr << "\nReconciled tree (use `event_tree_viz` "
+            "to visualize):\n";
+    }
+
+    std::cout << event_tree_to_string(tree) << '\n';
     return EXIT_SUCCESS;
 }
