@@ -40,7 +40,8 @@ std::ostream& operator<<(std::ostream& out, const Event::Type& type)
         return out << "Loss";
     }
 
-    return out << "[Invalid type]";
+    return out << "[Invalid type: "
+        << std::to_string(static_cast<int>(type)) << "]";
 }
 
 std::ostream& operator<<(std::ostream& out, const Event& event)
