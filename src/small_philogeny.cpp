@@ -36,7 +36,9 @@ void resolve_losses(
         // If this condition fails for a node, introduce an intermediary loss
         // node between the parent and its faulty child. Recursively resolve
         // discrepancies so that, ultimately, the condition is fulfilled
-        auto synteny_reconciled = synteny_parent.reconcile(synteny_child, 1, substring).second;
+        auto synteny_reconciled
+            = synteny_parent.reconcile(synteny_child, 1, substring).second;
+
         child = tree.wrap(child, Event(Event::Type::Loss, synteny_reconciled));
         resolve_losses(tree, parent, child, substring);
     }
@@ -55,9 +57,9 @@ void resolve_losses(
  * @return Cost of the computed optimal synteny assignation (number of
  * segmental duplications and losses).
  */
-int small_philogeny_for_syntenies(tree<Event>& tree, const Synteny& base)
+int small_philogeny(tree<Event>& tree, const Synteny& base)
 {
-    // Exact solution for the problem by a dynamic programming approach,
+    // Exact solution to the problem using a dynamic programming approach,
     // implementing the method described in “Reconstructing the History of
     // Syntenies Through Super-Reconciliation” (El-Mabrouk et al., 2015)
 
@@ -339,7 +341,7 @@ int main()
     tree_string << std::cin.rdbuf();
 
     tree<Event> tree = string_to_event_tree(tree_string.str());
-    small_philogeny_for_syntenies(tree, ancestral);
+    small_philogeny(tree, ancestral);
 
     if (is_interactive())
     {
