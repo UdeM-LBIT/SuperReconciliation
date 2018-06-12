@@ -27,7 +27,9 @@ TEST_CASE("Subsequence generation")
     std::copy(begin(s2_sub_vec), end(s2_sub_vec),
         inserter(s2_sub_set, begin(s2_sub_set)));
 
-    REQUIRE(s2_sub_set == std::set<Synteny>{{}, {"a"}, {"b"}, {"c"}, {"a", "b"}, {"b", "c"}, {"a", "c"}, {"a", "b", "c"}});
+    REQUIRE(s2_sub_set == std::set<Synteny>{
+        {}, {"a"}, {"b"}, {"c"}, {"a", "b"}, {"b", "c"},
+        {"a", "c"}, {"a", "b", "c"}});
 }
 
 TEST_CASE("Synteny distance computation")
@@ -59,4 +61,18 @@ TEST_CASE("Synteny reconciliation")
     REQUIRE(s0.reconcile(s2, 1).second == Synteny{"a", "b", "c"});
     REQUIRE(s0.reconcile(s3, 1).second == Synteny{"a", "c", "d"});
     REQUIRE(s2.reconcile(s3, 1).second == Synteny{"a", "c"});
+}
+
+TEST_CASE("Synteny difference")
+{
+    Synteny s0 = {"1", "2", "3", "4", "5", "6", "7", "8", "9"};
+    Synteny s1 = {"1", "4", "5", "6"};
+    Synteny s2 = {"4", "5"};
+    Synteny s3 = {"2", "4", "8"};
+    Synteny s4 = {"1", "2", "3", "8", "9"};
+
+    REQUIRE(s0.difference(s1) == "1 [ 2 3 ] 4 5 6 [ 7 8 9 ]");
+    REQUIRE(s0.difference(s2) == "[ 1 2 3 ] 4 5 [ 6 7 8 9 ]");
+    REQUIRE(s0.difference(s3) == "[ 1 ] 2 [ 3 ] 4 [ 5 6 7 ] 8 [ 9 ]");
+    REQUIRE(s0.difference(s4) == "1 2 3 [ 4 5 6 7 ] 8 9");
 }

@@ -1,10 +1,5 @@
 #include "Event.hpp"
-#include "EventTree.hpp"
 #include "ExtendedNumber.hpp"
-#include "util.hpp"
-#include <cstdlib>
-#include <iostream>
-#include <limits>
 #include <map>
 #include <tree.hh>
 
@@ -44,19 +39,6 @@ void resolve_losses(
     }
 }
 
-/**
- * Compute synteny assignations of internal nodes in a synteny tree so as to
- * minimize the total cost in duplications and segmental losses. This is the
- * “Small Philogeny Problem” applied to syntenies.
- * @param tree Synteny tree in which leaves are already labeled with studied
- * syntenies and internal nodes are labeled with events (speciation or
- * duplication). This tree is modified so that the optimal synteny assignation
- * is set in each internal node.
- * @param base Ancestral synteny, which labels the root.
- * @throws If the order is not consistent.
- * @return Cost of the computed optimal synteny assignation (number of
- * segmental duplications and losses).
- */
 int small_philogeny(tree<Event>& tree, const Synteny& base)
 {
     // Exact solution to the problem using a dynamic programming approach,
@@ -313,42 +295,4 @@ int small_philogeny(tree<Event>& tree, const Synteny& base)
     }
 
     return static_cast<int>(best_candidate_cost);
-}
-
-int main()
-{
-    if (is_interactive())
-    {
-        std::cerr << "Input the ancestral synteny followed "
-            "by a line feed:\n";
-    }
-
-    std::string ancestral_data;
-    std::getline(std::cin, ancestral_data);
-
-    std::istringstream ancestral_tok{ancestral_data};
-    std::istream_iterator<Gene> it{ancestral_tok};
-    std::istream_iterator<Gene> end;
-    Synteny ancestral(it, end);
-
-    if (is_interactive())
-    {
-        std::cerr << "\nInput the tree to be reconciled and "
-            "finish with Ctrl-D:\n";
-    }
-
-    std::ostringstream tree_string;
-    tree_string << std::cin.rdbuf();
-
-    tree<Event> tree = string_to_event_tree(tree_string.str());
-    small_philogeny(tree, ancestral);
-
-    if (is_interactive())
-    {
-        std::cerr << "\nReconciled tree (use `event_tree_viz` "
-            "to visualize):\n";
-    }
-
-    std::cout << event_tree_to_string(tree) << '\n';
-    return EXIT_SUCCESS;
 }
