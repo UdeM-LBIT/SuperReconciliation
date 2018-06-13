@@ -1,5 +1,4 @@
-a b c d
-(spec
+(spec : a b c d
     (spec
         (: a d)
         (dupl

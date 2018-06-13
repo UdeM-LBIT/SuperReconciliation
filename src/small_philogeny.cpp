@@ -6,7 +6,8 @@
 /**
  * Make sure that, in an event tree, the distance in terms of losses between
  * a parent and one of its children is at most 1 for loss nodes and at most
- * 0 (ie. they have the same synteny) for other nodes.
+ * 0 (ie. they have the same synteny) for other nodes by inserting loss nodes
+ * where needed.
  * @param tree Tree on which to check the condition.
  * @param parent Parent node.
  * @param child Child node.
@@ -39,7 +40,7 @@ void resolve_losses(
     }
 }
 
-int small_philogeny(tree<Event>& tree, const Synteny& base)
+int small_philogeny(tree<Event>& tree)
 {
     // Exact solution to the problem using a dynamic programming approach,
     // implementing the method described in “Reconstructing the History of
@@ -78,7 +79,7 @@ int small_philogeny(tree<Event>& tree, const Synteny& base)
     };
 
     // List of all possible candidates derived from the ancestral synteny
-    auto possibilities = base.generateSubsequences();
+    auto possibilities = std::begin(tree)->getSynteny().generateSubsequences();
 
     // Data structure storing all candidates for a given node. Here, we
     // associate each candidate synteny (key of the map) to the informations

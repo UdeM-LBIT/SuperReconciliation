@@ -1,4 +1,4 @@
-(spec
+(spec : h s a n
     (dupl
         (dupl
             (dupl

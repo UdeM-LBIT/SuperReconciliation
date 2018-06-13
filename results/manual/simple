@@ -1,5 +1,4 @@
-x x' x''
-(dupl
+(dupl : x x' x''
     (spec
         (: x x' x'')
         (loss)
