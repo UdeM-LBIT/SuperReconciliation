@@ -19,23 +19,23 @@ void resolve_losses(
 {
     auto synteny_parent = parent->getSynteny();
     auto synteny_child = child->getSynteny();
+    auto distance = synteny_parent.distanceTo(synteny_child, substring);
 
     // Only loss nodes are allowed to have at most a distance of one with their
     // child syntenies. Other nodes must have exactly the same synteny as their
     // children
-    if ((child->getType() == Event::Type::Loss
-            && synteny_parent.distanceTo(synteny_child, substring) > 1)
-        || (child->getType() != Event::Type::Loss
-            && synteny_parent.distanceTo(synteny_child, substring) > 0))
+    if ((child->getType() == Event::Type::Loss && distance > 1)
+        || (child->getType() != Event::Type::Loss && distance > 0))
     {
         // If this condition fails for a node, introduce an intermediary loss
         // node between the parent and its faulty child. Recursively resolve
         // discrepancies so that, ultimately, the condition is fulfilled
         auto synteny_reconciled
             = synteny_parent.reconcile(synteny_child, 1, substring).second;
+        auto new_child
+            = tree.wrap(child, Event(Event::Type::Loss, synteny_reconciled));
 
-        child = tree.wrap(child, Event(Event::Type::Loss, synteny_reconciled));
-        resolve_losses(tree, parent, child, substring);
+        resolve_losses(tree, new_child, child, substring);
     }
 }
 
