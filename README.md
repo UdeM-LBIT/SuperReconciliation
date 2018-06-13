@@ -12,3 +12,4 @@ make
 * `./build/main`: solve the Small Philogeny problem.
 * `./build/test`: run unit tests.
 * `./build/viz`: convert a tree in parenthesized format into a Graphviz-compatible representation.
+* `./build/random`: generate a random tree.
