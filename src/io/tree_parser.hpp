@@ -17,6 +17,7 @@
  * gene ::= [^:() \t\r\n]+
  *
  * @param input Input string to parse.
+ *
  * @throws std::invalid_argument If the input string does not conform to the
  * above syntax.
  * @return Resulting labeled synteny tree.
@@ -28,6 +29,7 @@ tree<Event> string_to_event_tree(const std::string&);
  * representation.
  *
  * @param tree Input tree.
+ *
  * @return Resulting representation of the tree.
  */
 std::string event_tree_to_string(const tree<Event>&);
@@ -36,6 +38,7 @@ std::string event_tree_to_string(const tree<Event>&);
  * Converts a labeled synteny tree to a Graphviz representation.
  *
  * @param tree Input tree.
+ *
  * @return Resulting Graphviz representation.
  */
 std::string event_tree_to_graphviz(const tree<Event>&);

@@ -8,6 +8,7 @@
  * a parent and one of its children is at most 1 for loss nodes and at most
  * 0 (ie. they have the same synteny) for other nodes by inserting loss nodes
  * where needed.
+ *
  * @param tree Tree on which to check the condition.
  * @param parent Parent node.
  * @param child Child node.

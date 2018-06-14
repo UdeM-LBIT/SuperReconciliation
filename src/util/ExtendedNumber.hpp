@@ -20,43 +20,51 @@ public:
 
     /**
      * Create an extended number with the given value.
+     *
      * @param value Value to give to the number.
      */
     ExtendedNumber(const T&);
 
     /**
      * Create an instance representing positive infinity.
+     *
      * @return Instance representing positive infinity.
      */
     static ExtendedNumber positiveInfinity() noexcept;
 
     /**
      * Create an instance representing negative infinity.
+     *
      * @return Instance representing negative infinity.
      */
     static ExtendedNumber negativeInfinity() noexcept;
 
     /**
      * Check whether the current instance is positive infinity.
+     *
      * @return True iff this is positive infinity.
      */
     bool isPositiveInfinity() const noexcept;
 
     /**
      * Check whether the current instance is negative infinity.
+     *
      * @return True iff this is negative infinity.
      */
     bool isNegativeInfinity() const noexcept;
 
     /**
      * Check whether the current instance is infinity.
+     *
      * @return True iff this is infinity.
      */
     bool isInfinity() const noexcept;
 
     /**
      * Explicitly convert an extended number towards its wrapped type.
+     *
      * @throws std::domain_error If this is infinity.
+     * @return The wrapped value.
      */
     explicit operator T() const;
 
@@ -74,7 +82,9 @@ public:
 
     /**
      * Add another extended number to this and stores the result into this.
+     *
      * @param rhs Second operand.
+     *
      * @throws std::domain_error When trying to add opposite infinities.
      * @return Current instance.
      */
@@ -83,7 +93,9 @@ public:
 
     /**
      * Subtract another extended number from this and stores the result into this.
+     *
      * @param rhs Second operand.
+     *
      * @throws std::domain_error When trying to subtract same-sign infinities.
      * @return Current instance.
      */
@@ -92,7 +104,9 @@ public:
 
     /**
      * Multiply another extended number to this and stores the result into this.
+     *
      * @param rhs Second operand.
+     *
      * @throws std::domain_error When trying to multiply zero with infinity.
      * @return Current instance.
      */
@@ -101,7 +115,9 @@ public:
 
     /**
      * Divide another extended number to this and stores the result into this.
+     *
      * @param rhs Second operand.
+     *
      * @throws std::domain_error When trying to add opposite infinities.
      * @return Current instance.
      */
@@ -150,8 +166,10 @@ ExtendedNumber<T> operator/(const T&, const ExtendedNumber<T>&);
 
 /**
  * Print an extended number on an output stream.
+ *
  * @param out Output stream to print on.
  * @param number Extended number to print.
+ *
  * @return Used output stream.
  */
 template<typename T>
