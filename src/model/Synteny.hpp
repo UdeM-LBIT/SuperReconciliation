@@ -1,5 +1,5 @@
-#ifndef SYNTENY_HPP
-#define SYNTENY_HPP
+#ifndef MODEL_SYNTENY_HPP
+#define MODEL_SYNTENY_HPP
 
 #include "../util/ExtendedNumber.hpp"
 #include "Gene.hpp"
@@ -86,4 +86,4 @@ public:
  */
 std::ostream& operator<<(std::ostream&, const Synteny&);
 
-#endif // SYNTENY_HPP
+#endif // MODEL_SYNTENY_HPP

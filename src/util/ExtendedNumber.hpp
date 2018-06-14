@@ -1,5 +1,5 @@
-#ifndef EXTENDED_NUMBER_HPP
-#define EXTENDED_NUMBER_HPP
+#ifndef UTIL_EXTENDED_NUMBER_HPP
+#define UTIL_EXTENDED_NUMBER_HPP
 
 #include <ostream>
 
@@ -159,4 +159,4 @@ std::ostream& operator<<(std::ostream&, const ExtendedNumber<T>&);
 
 #include "ExtendedNumber.tpp"
 
-#endif // EXTENDED_NUMBER_HPP
+#endif // UTIL_EXTENDED_NUMBER_HPP

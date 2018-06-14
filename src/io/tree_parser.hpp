@@ -1,5 +1,5 @@
-#ifndef TREE_PARSER_HPP
-#define TREE_PARSER_HPP
+#ifndef IO_TREE_PARSER_HPP
+#define IO_TREE_PARSER_HPP
 
 #include "../model/Event.hpp"
 #include <string>
@@ -40,4 +40,4 @@ std::string event_tree_to_string(const tree<Event>&);
  */
 std::string event_tree_to_graphviz(const tree<Event>&);
 
-#endif // TREE_PARSER_HPP
+#endif // IO_TREE_PARSER_HPP

@@ -1,5 +1,5 @@
-#ifndef EVENT_HPP
-#define EVENT_HPP
+#ifndef MODEL_EVENT_HPP
+#define MODEL_EVENT_HPP
 
 #include "Synteny.hpp"
 
@@ -74,4 +74,4 @@ std::ostream& operator<<(std::ostream&, const Event::Type&);
  */
 std::ostream& operator<<(std::ostream&, const Event&);
 
-#endif // EVENT_HPP
+#endif // MODEL_EVENT_HPP
