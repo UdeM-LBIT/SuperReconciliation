@@ -1,5 +1,5 @@
-#include "Event.hpp"
-#include "ExtendedNumber.hpp"
+#include "model/Event.hpp"
+#include "util/ExtendedNumber.hpp"
 #include <map>
 #include <tree.hh>
 
@@ -40,7 +40,7 @@ void resolve_losses(
     }
 }
 
-int small_philogeny(tree<Event>& tree)
+int super_reconciliation(tree<Event>& tree)
 {
     // Exact solution to the problem using a dynamic programming approach,
     // implementing the method described in “Reconstructing the History of
@@ -52,7 +52,7 @@ int small_philogeny(tree<Event>& tree)
     }
 
     // Costs (number of segmental duplications and losses) are modeled by an
-    // extended integer which enables correct infinity representation
+    // extended integer which correctly represents infinities
     using Cost = ExtendedNumber<int>;
 
     // For each node, we call a “candidate synteny” a possible synteny

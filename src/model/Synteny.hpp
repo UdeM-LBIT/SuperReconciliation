@@ -1,7 +1,7 @@
 #ifndef SYNTENY_HPP
 #define SYNTENY_HPP
 
-#include "ExtendedNumber.hpp"
+#include "../util/ExtendedNumber.hpp"
 #include "Gene.hpp"
 #include <iostream>
 #include <list>

@@ -1,5 +1,5 @@
-#include "Event.hpp"
-#include "tree_parser.hpp"
+#include "model/Event.hpp"
+#include "io/tree_parser.hpp"
 #include <algorithm>
 #include <functional>
 #include <random>

@@ -1,5 +1,5 @@
-#include "tree_parser.hpp"
-#include "util.hpp"
+#include "io/tree_parser.hpp"
+#include "io/util.hpp"
 #include <cstdlib>
 #include <iostream>
 #include <sstream>

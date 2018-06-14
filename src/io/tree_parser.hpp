@@ -1,7 +1,7 @@
 #ifndef TREE_PARSER_HPP
 #define TREE_PARSER_HPP
 
-#include "Event.hpp"
+#include "../model/Event.hpp"
 #include <string>
 #include <tree.hh>
 
