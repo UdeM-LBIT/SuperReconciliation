@@ -1,13 +1,15 @@
-(dupl : x x' x''
-    (spec
-        (: x x' x'')
-        (loss)
-    )
-    (spec
-        (: x)
-        (dupl
-            (: x x'')
-            (: x x')
-        )
-    )
-)
+[This is a simple example extracted from the paper.]
+
+(
+    (
+        "x x' x''",
+        [&&NHX:event=loss]
+    )[&&NHX:event=speciation],
+    (
+        "x",
+        (
+            "x x''",
+            "x x'"
+        )[&&NHX:event=duplication]
+    )[&&NHX:event=speciation]
+)"x x' x''"[&&NHX:event=duplication];

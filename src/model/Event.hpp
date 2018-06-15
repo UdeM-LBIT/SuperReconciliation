@@ -1,14 +1,14 @@
 #ifndef MODEL_EVENT_HPP
 #define MODEL_EVENT_HPP
 
+#include "../io/nhx_parser.hpp"
 #include "Synteny.hpp"
 
 /**
  * An event that happened at a node in a synteny tree.
  */
-class Event
+struct Event
 {
-public:
     /**
      * Kind of event.
      */
@@ -20,46 +20,27 @@ public:
         Loss, //< Segmental loss event
     };
 
-    /**
-     * Create an empty event (type `Event::Type::None` and empty synteny).
-     */
-    Event();
-
-    /**
-     * Create an event.
-     *
-     * @param type Event type to associate with the node.
-     * @param synteny Synteny to associate with the node.
-     */
-    Event(Type, Synteny);
-
-    /**
-     * Get the event’s type.
-     *
-     * @return Event type.
-     */
-    Type getType() const noexcept;
-
-    /**
-     * Get the event’s synteny.
-     *
-     * @return Event synteny.
-     */
-    const Synteny& getSynteny() const noexcept;
-
-    /**
-     * Set the event’s synteny.
-     *
-     * @param synteny New synteny to associate with the node.
-     */
-    void setSynteny(const Synteny&) noexcept;
-
-private:
     // Type of event
-    Type type;
+    Type type = Type::None;
 
     // Synteny associated with the node
     Synteny synteny;
+
+    Event() = default;
+
+    /**
+     * Convert a tagged node to an event node.
+     *
+     * @param tagnode Source tagged node.
+     */
+    Event(const TaggedNode&);
+
+    /**
+     * Convert an event node to a tagged node.
+     *
+     * @return Tagged node.
+     */
+    operator TaggedNode() const;
 };
 
 /**

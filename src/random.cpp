@@ -1,5 +1,6 @@
 #include "model/Event.hpp"
-#include "io/tree_parser.hpp"
+#include "io/nhx_parser.hpp"
+#include "util/tree.hpp"
 #include <algorithm>
 #include <functional>
 #include <random>
@@ -46,18 +47,25 @@ tree<Event> generate_random_tree(PRNG& prng, Synteny root, int max_depth,
         // Make a leaf node
         if (root.empty())
         {
-            return tree<Event>{Event{Event::Type::Loss, root}};
+            Event node;
+            node.type = Event::Type::Loss;
+            node.synteny = root;
+            return tree<Event>{node};
         }
         else
         {
-            return tree<Event>{Event{Event::Type::None, root}};
+            Event node;
+            node.synteny = root;
+            return tree<Event>{node};
         }
     }
     else
     {
         // Make an internal node
         auto event_type = static_cast<Event::Type>(node_type());
-        tree<Event> result{Event{event_type, Synteny{}}};
+        Event node;
+        node.type = event_type;
+        tree<Event> result{node};
 
         auto left_node = result.append_child(result.begin());
         auto left_synteny = random_losses(prng, root, p_loss, p_advance);
@@ -158,10 +166,11 @@ int main(int argc, const char* argv[])
         root.push_back(std::string{it});
     }
 
-    auto tree = generate_random_tree(
+    auto event_tree = generate_random_tree(
         prng, root, max_depth, p_leaf, p_dupl, p_loss, p_advance);
 
-    std::begin(tree)->setSynteny(root);
-    std::cout << event_tree_to_string(tree);
-}
+    std::begin(event_tree)->synteny = root;
 
+    auto output_tree = tree_cast<Event, TaggedNode>(event_tree);
+    std::cout << stringify_nhx_tree(output_tree);
+}

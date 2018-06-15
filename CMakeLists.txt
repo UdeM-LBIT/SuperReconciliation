@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 
 # Common library
 add_library(common
-    src/io/tree_parser.cpp
+    src/io/nhx_parser.cpp
     src/io/util.cpp
     src/model/Event.cpp
     src/model/Synteny.cpp

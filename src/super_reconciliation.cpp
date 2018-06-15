@@ -19,24 +19,25 @@ void resolve_losses(
     ::tree<Event>::iterator_base parent, ::tree<Event>::iterator_base child,
     bool substring)
 {
-    auto synteny_parent = parent->getSynteny();
-    auto synteny_child = child->getSynteny();
+    auto synteny_parent = parent->synteny;
+    auto synteny_child = child->synteny;
     auto distance = synteny_parent.distanceTo(synteny_child, substring);
 
     // Only loss nodes are allowed to have at most a distance of one with their
     // child syntenies. Other nodes must have exactly the same synteny as their
     // children
-    if ((child->getType() == Event::Type::Loss && distance > 1)
-        || (child->getType() != Event::Type::Loss && distance > 0))
+    if ((child->type == Event::Type::Loss && distance > 1)
+        || (child->type != Event::Type::Loss && distance > 0))
     {
         // If this condition fails for a node, introduce an intermediary loss
         // node between the parent and its faulty child. Recursively resolve
         // discrepancies so that, ultimately, the condition is fulfilled
-        auto synteny_reconciled
+        Event new_node;
+        new_node.type = Event::Type::Loss;
+        new_node.synteny
             = synteny_parent.reconcile(synteny_child, 1, substring).second;
-        auto new_child
-            = tree.wrap(child, Event(Event::Type::Loss, synteny_reconciled));
 
+        auto new_child = tree.wrap(child, new_node);
         resolve_losses(tree, new_child, child, substring);
     }
 }
@@ -80,7 +81,7 @@ int super_reconciliation(tree<Event>& tree)
     };
 
     // List of all possible candidates derived from the ancestral synteny
-    auto possibilities = std::begin(tree)->getSynteny().generateSubsequences();
+    auto possibilities = std::begin(tree)->synteny.generateSubsequences();
 
     // Data structure storing all candidates for a given node. Here, we
     // associate each candidate synteny (key of the map) to the informations
@@ -109,7 +110,7 @@ int super_reconciliation(tree<Event>& tree)
             {
                 candidates.emplace(
                     candidate,
-                    Candidate{candidate == it->getSynteny()
+                    Candidate{candidate == it->synteny
                         ? 0
                         : Cost::positiveInfinity()});
             }
@@ -192,7 +193,7 @@ int super_reconciliation(tree<Event>& tree)
 
                 Candidate info;
 
-                switch (it->getType())
+                switch (it->type)
                 {
                 case Event::Type::Speciation:
                     // At speciation nodes, only one scenario is possible:
@@ -240,7 +241,7 @@ int super_reconciliation(tree<Event>& tree)
                 {
                     std::ostringstream message;
                     message << "Invalid event type on an internal node: "
-                        << it->getType();
+                        << it->type;
                     throw std::invalid_argument{message.str()};
                 }
                 }
@@ -275,7 +276,7 @@ int super_reconciliation(tree<Event>& tree)
             "the leaves."};
     }
 
-    root->setSynteny(best_synteny);
+    root->synteny = best_synteny;
 
     // It only remains to propagate the best assignations starting from
     // the root node
@@ -283,15 +284,15 @@ int super_reconciliation(tree<Event>& tree)
     {
         if (tree.number_of_children(parent) == 2)
         {
-            auto synteny_root = parent->getSynteny();
+            auto synteny_root = parent->synteny;
             auto child_left = tree.child(parent, 0);
             auto child_right = tree.child(parent, 1);
             auto info = candidates_per_node.at(&*parent).at(synteny_root);
 
-            child_left->setSynteny(info.synteny_left);
+            child_left->synteny = info.synteny_left;
             resolve_losses(tree, parent, child_left, info.partial_left);
 
-            child_right->setSynteny(info.synteny_right);
+            child_right->synteny = info.synteny_right;
             resolve_losses(tree, parent, child_right, info.partial_right);
         }
     }

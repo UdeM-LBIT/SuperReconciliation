@@ -1,6 +1,7 @@
 #include "super_reconciliation.hpp"
-#include "io/tree_parser.hpp"
+#include "io/nhx_parser.hpp"
 #include "io/util.hpp"
+#include "util/tree.hpp"
 #include <cstdlib>
 #include <iostream>
 #include <sstream>
@@ -13,15 +14,17 @@ int main()
             "finish with Ctrl-D:\n";
     }
 
-    std::ostringstream tree_string;
-    tree_string << std::cin.rdbuf();
+    std::ostringstream nhx_tree;
+    nhx_tree << std::cin.rdbuf();
 
-    tree<Event> tree = string_to_event_tree(tree_string.str());
-    auto cost = super_reconciliation(tree);
+    auto input_tree = parse_nhx_tree(nhx_tree.str());
+    auto event_tree = tree_cast<TaggedNode, Event>(input_tree);
+    auto cost = super_reconciliation(event_tree);
+    auto result_tree = tree_cast<Event, TaggedNode>(event_tree);
 
-    std::cerr << "\nReconciled tree with cost " << cost
+    std::cerr << "Reconciled tree with cost " << cost
         << " (use `viz` to visualize):\n";
-    std::cout << event_tree_to_string(tree) << '\n';
+    std::cout << stringify_nhx_tree(result_tree) << '\n';
 
     return EXIT_SUCCESS;
 }

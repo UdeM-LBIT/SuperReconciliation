@@ -1,55 +1,57 @@
-(spec : h s a n
-    (dupl
-        (dupl
-            (dupl
-                (spec
-                    (spec
-                        (spec
-                            (: s a n h)
-                            (: h n a s)
-                        )
-                        (: a s h n)
-                    )
-                    (: h s a n)
-                )
-                (spec
-                    (spec
-                        (: a)
-                        (: n)
-                    )
-                    (spec
-                        (: a n)
-                        (spec
-                            (: a n)
-                            (: n a)
-                        )
-                    )
-                )
-            )
-            (spec
-                (: n h a)
-                (spec
-                    (: a n h)
-                    (spec
-                        (: a h n)
-                        (: a)
-                    )
-                )
-            )
-        )
-        (spec
-            (: s n a h)
-            (spec
-                (: n a s h)
-                (spec
-                    (: h n s a)
-                    (: h n s a)
-                )
-            )
-        )
-    )
-    (spec
-        (: n)
-        (: h a)
-    )
-)
+[This is the tree from the “Application” section in the paper.]
+
+(
+    (
+        (
+            (
+                (
+                    (
+                        (
+                            "s a n h",
+                            "h n a s"
+                        )[&&NHX:event=speciation],
+                        "a s h n"
+                    )[&&NHX:event=speciation],
+                    "h s a n"
+                )[&&NHX:event=speciation],
+                (
+                    (
+                        "a",
+                        "n"
+                    )[&&NHX:event=speciation],
+                    (
+                        "a n",
+                        (
+                            "a n",
+                            "n a"
+                        )[&&NHX:event=speciation]
+                    )[&&NHX:event=speciation]
+                )[&&NHX:event=speciation]
+            )[&&NHX:event=duplication],
+            (
+                "n h a",
+                (
+                    "a n h",
+                    (
+                        "a h n",
+                        "a"
+                    )[&&NHX:event=speciation]
+                )[&&NHX:event=speciation]
+            )[&&NHX:event=speciation]
+        )[&&NHX:event=duplication],
+        (
+            "s n a h",
+            (
+                "n a s h",
+                (
+                    "h n s a",
+                    "h n s a"
+                )[&&NHX:event=speciation]
+            )[&&NHX:event=speciation]
+        )[&&NHX:event=speciation]
+    )[&&NHX:event=duplication],
+    (
+        "n",
+        "h a"
+    )[&&NHX:event=speciation]
+)"h s a n"[&&NHX:event=speciation];

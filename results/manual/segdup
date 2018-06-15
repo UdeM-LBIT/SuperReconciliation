@@ -1,22 +1,25 @@
-(spec : a b c d
-    (spec
-        (: a d)
-        (dupl
-            (: a b c)
-            (: a b d)
-        )
-    )
-    (dupl
-        (spec
-            (: a b c d)
-            (: a b c)
-        )
-        (spec
-            (: b c d)
-            (spec
-                (: b d)
-                (: d)
-            )
-        )
-    )
-)
+[This tree highlights the possibility of segmental duplications in
+ the reconciled history.]
+
+(
+    (
+        "a d",
+        (
+            "a b c",
+            "a b d"
+        )[&&NHX:event=duplication]
+    )[&&NHX:event=speciation],
+    (
+        (
+            "a b c d",
+            "a b c"
+        )[&&NHX:event=speciation],
+        (
+            "b c d",
+            (
+                "b d",
+                "d"
+            )[&&NHX:event=speciation]
+        )[&&NHX:event=speciation]
+    )[&&NHX:event=duplication]
+)"a b c d"[&&NHX:event=speciation];
