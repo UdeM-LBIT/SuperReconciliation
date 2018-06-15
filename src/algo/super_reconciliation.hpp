@@ -1,8 +1,8 @@
-#ifndef SUPER_RECONCILIATION_HPP
-#define SUPER_RECONCILIATION_HPP
+#ifndef ALGO_SUPER_RECONCILIATION_HPP
+#define ALGO_SUPER_RECONCILIATION_HPP
 
-#include "model/Event.hpp"
-#include "model/Synteny.hpp"
+#include "../model/Event.hpp"
+#include "../model/Synteny.hpp"
 #include <tree.hh>
 
 /**
@@ -23,4 +23,4 @@
  */
 int super_reconciliation(tree<Event>& tree);
 
-#endif // SUPER_RECONCILIATION_HPP
+#endif // ALGO_SUPER_RECONCILIATION_HPP

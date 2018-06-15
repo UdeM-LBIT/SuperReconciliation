@@ -10,20 +10,20 @@ add_library(common
     src/io/util.cpp
     src/model/Event.cpp
     src/model/Synteny.cpp
-    src/super_reconciliation.cpp
+    src/algo/super_reconciliation.cpp
 )
 
 target_include_directories(common PUBLIC lib)
 
-# `main` executable
-add_executable(main src/main.cpp)
-target_link_libraries(main common)
-target_include_directories(main PUBLIC lib)
+# `super_reconciliation` executable
+add_executable(super_reconciliation src/super_reconciliation.cpp)
+target_link_libraries(super_reconciliation common)
+target_include_directories(super_reconciliation PUBLIC lib)
 
-# `random` executable
-add_executable(random src/random.cpp)
-target_link_libraries(random common)
-target_include_directories(random PUBLIC lib)
+# `simulate` executable
+add_executable(simulate src/simulate.cpp)
+target_link_libraries(simulate common)
+target_include_directories(simulate PUBLIC lib)
 
 # `viz` executable
 add_executable(viz src/viz.cpp)
