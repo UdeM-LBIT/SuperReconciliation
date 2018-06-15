@@ -33,6 +33,7 @@ target_include_directories(viz PUBLIC lib)
 # `tests` executable
 add_executable(tests
     src/tests.cpp
+    src/io/nhx_parser.test.cpp
     src/model/Synteny.test.cpp
     src/util/ExtendedNumber.test.cpp
 )
