@@ -108,6 +108,6 @@ std::ostream& operator<<(std::ostream& out, const Event::Type& type)
 
 std::ostream& operator<<(std::ostream& out, const Event& event)
 {
-    return out << "Event {\n\ttype = " << event.type << "\n\tsynteny = "
-        << event.synteny << "\n}";
+    return out << "{type=" << event.type << ",synteny="
+        << event.synteny << "}";
 }

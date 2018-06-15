@@ -81,7 +81,8 @@ int super_reconciliation(tree<Event>& tree)
     };
 
     // List of all possible candidates derived from the ancestral synteny
-    auto possibilities = std::begin(tree)->synteny.generateSubsequences();
+    auto ancestral_synteny = std::begin(tree)->synteny;
+    auto possibilities = ancestral_synteny.generateSubsequences();
 
     // Data structure storing all candidates for a given node. Here, we
     // associate each candidate synteny (key of the map) to the informations
@@ -91,6 +92,9 @@ int super_reconciliation(tree<Event>& tree)
     // Associate each tree node (event) to its candidate syntenies
     std::map<Event*, CandidateMapping> candidates_per_node;
 
+    // Associate each tree node (event) to its best candidate synteny
+    std::map<Event*, Synteny> best_candidate_for_node;
+
     // Fill the `candidates_per_node` map with a dynamic programming,
     // bottom-up (postfix order) approach
     for (
@@ -99,6 +103,8 @@ int super_reconciliation(tree<Event>& tree)
         ++it)
     {
         CandidateMapping candidates;
+        auto best_candidate_cost = ExtendedNumber<int>::positiveInfinity();
+        Synteny best_candidate;
 
         if (tree.number_of_children(it) == 0)
         {
@@ -108,11 +114,17 @@ int super_reconciliation(tree<Event>& tree)
             // preserved
             for (const Synteny& candidate : possibilities)
             {
-                candidates.emplace(
-                    candidate,
-                    Candidate{candidate == it->synteny
-                        ? 0
-                        : Cost::positiveInfinity()});
+                Candidate info;
+                info.cost = candidate == it->synteny ? 0
+                    : Cost::positiveInfinity();
+
+                if (info.cost < best_candidate_cost)
+                {
+                    best_candidate_cost = info.cost;
+                    best_candidate = candidate;
+                }
+
+                candidates.emplace(candidate, info);
             }
         }
         else if (tree.number_of_children(it) == 2)
@@ -246,37 +258,34 @@ int super_reconciliation(tree<Event>& tree)
                 }
                 }
 
+                if (info.cost < best_candidate_cost)
+                {
+                    best_candidate_cost = info.cost;
+                    best_candidate = candidate;
+                }
+
                 candidates.emplace(candidate, info);
             } // end loop on candidates
         }
 
+        if (best_candidate_cost.isInfinity())
+        {
+            std::ostringstream message;
+            message << "There is no valid candidate for the node "
+                << *it << " under the order of the root synteny ("
+                << ancestral_synteny << ").";
+            throw std::invalid_argument{message.str()};
+        }
+
         candidates_per_node.emplace(&*it, candidates);
+        best_candidate_for_node.emplace(&*it, best_candidate);
     } // end postorder traversal
 
     // Now that the whole map of candidates has been filled in, in particular
     // for the root node, the optimal candidate for the root node fully
     // determines the optimal assignation for the rest of the tree
     Event* root = &*std::begin(tree);
-    auto best_candidate_cost = Cost::positiveInfinity();
-    Synteny best_synteny;
-
-    for (const auto& candidate_pair : candidates_per_node.at(root))
-    {
-        if (candidate_pair.second.cost < best_candidate_cost)
-        {
-            best_candidate_cost = candidate_pair.second.cost;
-            best_synteny = candidate_pair.first;
-        }
-    }
-
-    if (best_candidate_cost.isInfinity())
-    {
-        throw std::invalid_argument{"The order of the ancestral synteny "
-            "is not consistent with the affectation of at least one of "
-            "the leaves."};
-    }
-
-    root->synteny = best_synteny;
+    root->synteny = best_candidate_for_node.at(root);
 
     // It only remains to propagate the best assignations starting from
     // the root node
@@ -297,5 +306,6 @@ int super_reconciliation(tree<Event>& tree)
         }
     }
 
-    return static_cast<int>(best_candidate_cost);
+    return static_cast<int>(
+        candidates_per_node.at(root).at(root->synteny).cost);
 }
