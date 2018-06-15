@@ -16,6 +16,16 @@ public:
     using std::list<Gene>::list;
 
     /**
+     * Generate a dummy synteny of given length, with incrementing
+     * alphabetic gene families.
+     *
+     * @param length Length of the synteny to generate.
+     *
+     * @return Generated synteny.
+     */
+    static Synteny generateDummy(unsigned long);
+
+    /**
      * Generate all possible subsequences for this synteny.
      *
      * @return List of all possible syntenies that are subsequences.

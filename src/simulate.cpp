@@ -7,54 +7,18 @@
 #include <tree.hh>
 
 /**
- * Generate a synteny of given length.
- *
- * @param length Length of the synteny to generate.
- *
- * @return List of gene families in the generated synteny.
- */
-Synteny generate_synteny(unsigned long length)
-{
-    unsigned long i = 0;
-
-    Synteny result;
-    Gene current = "a";
-
-    while (i != length)
-    {
-        result.push_back(current);
-        auto incr_pos = current.rbegin();
-
-        while (*incr_pos == 'z' && incr_pos != current.rend())
-        {
-            *incr_pos = 'a';
-            ++incr_pos;
-        }
-
-        if (incr_pos == current.rend())
-        {
-            current.insert(current.begin(), 'a');
-        }
-        else
-        {
-            ++*incr_pos;
-        }
-
-        ++i;
-    }
-
-    return result;
-}
-
-/**
- * Remove loss and internal synteny labelling from a synteny tree.
+ * Erase loss and internal synteny labelling from a synteny tree.
  *
  * @param tree Input synteny tree.
  * @param root Node from which to start removing.
+ * @param [is_root=true] Whether we start removing from the tree’s root.
  *
  * @return Resulting tree.
  */
-void remove_tree_info(::tree<Event> input, ::tree<Event>::sibling_iterator root)
+void erase_tree_info(
+    ::tree<Event> input,
+    ::tree<Event>::sibling_iterator root,
+    bool is_root = true)
 {
     switch (root->type)
     {
@@ -70,7 +34,7 @@ void remove_tree_info(::tree<Event> input, ::tree<Event>::sibling_iterator root)
             auto child = input.child(root, 0);
             input.flatten(root);
             input.erase(root);
-            remove_tree_info(input, child);
+            erase_tree_info(input, child, false);
         }
 
         return;
@@ -78,9 +42,14 @@ void remove_tree_info(::tree<Event> input, ::tree<Event>::sibling_iterator root)
 
     case Event::Type::Duplication:
     case Event::Type::Speciation:
-        root->synteny = Synteny{};
-        remove_tree_info(input, input.child(root, 0));
-        remove_tree_info(input, input.child(root, 1));
+        if (!is_root)
+        {
+            // Erase all syntenies in internal nodes except for the root node
+            root->synteny = Synteny{};
+        }
+
+        erase_tree_info(input, input.child(root, 0), false);
+        erase_tree_info(input, input.child(root, 1), false);
         return;
     }
 }
@@ -172,17 +141,17 @@ int main(int argc, const char* argv[])
     std::cerr << "Seed: " << seed << "\n";
     prng.seed(seed);
 
-    params.base_synteny = generate_synteny(synteny_length);
+    params.base_synteny = Synteny::generateDummy(synteny_length);
 
     auto full_tree = simulate_evolution(params);
     auto erased_tree = full_tree;
-    remove_tree_info(erased_tree, std::begin(erased_tree));
+    erase_tree_info(erased_tree, std::begin(erased_tree));
 
     auto out_full_tree = tree_cast<Event, TaggedNode>(full_tree);
     auto out_erased_tree = tree_cast<Event, TaggedNode>(erased_tree);
 
     std::cerr << "Full tree:\n";
     std::cout << stringify_nhx_tree(out_full_tree) << "\n";
-    std::cerr << "\nTree with removed information:\n";
+    std::cerr << "\nTree with erased information:\n";
     std::cout << stringify_nhx_tree(out_erased_tree) << "\n";
 }

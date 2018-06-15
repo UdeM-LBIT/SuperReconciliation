@@ -2,6 +2,39 @@
 #include <sstream>
 #include <stdexcept>
 
+Synteny Synteny::generateDummy(unsigned long length)
+{
+    unsigned long i = 0;
+
+    Synteny result;
+    Gene current = "a";
+
+    while (i != length)
+    {
+        result.push_back(current);
+        auto incr_pos = current.rbegin();
+
+        while (*incr_pos == 'z' && incr_pos != current.rend())
+        {
+            *incr_pos = 'a';
+            ++incr_pos;
+        }
+
+        if (incr_pos == current.rend())
+        {
+            current.insert(current.begin(), 'a');
+        }
+        else
+        {
+            ++*incr_pos;
+        }
+
+        ++i;
+    }
+
+    return result;
+}
+
 std::vector<Synteny> Synteny::generateSubsequences() const
 {
     if (this->empty())
