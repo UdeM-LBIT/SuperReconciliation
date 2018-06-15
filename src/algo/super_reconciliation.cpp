@@ -103,8 +103,7 @@ int super_reconciliation(tree<Event>& tree)
         ++it)
     {
         CandidateMapping candidates;
-        auto best_candidate_cost = ExtendedNumber<int>::positiveInfinity();
-        Synteny best_candidate;
+        bool is_consistent = false;
 
         if (tree.number_of_children(it) == 0)
         {
@@ -115,13 +114,12 @@ int super_reconciliation(tree<Event>& tree)
             for (const Synteny& candidate : possibilities)
             {
                 Candidate info;
-                info.cost = candidate == it->synteny ? 0
-                    : Cost::positiveInfinity();
+                info.cost = Cost::positiveInfinity();
 
-                if (info.cost < best_candidate_cost)
+                if (candidate == it->synteny)
                 {
-                    best_candidate_cost = info.cost;
-                    best_candidate = candidate;
+                    info.cost = 0;
+                    is_consistent = true;
                 }
 
                 candidates.emplace(candidate, info);
@@ -258,17 +256,16 @@ int super_reconciliation(tree<Event>& tree)
                 }
                 }
 
-                if (info.cost < best_candidate_cost)
+                if (!info.cost.isInfinity())
                 {
-                    best_candidate_cost = info.cost;
-                    best_candidate = candidate;
+                    is_consistent = true;
                 }
 
                 candidates.emplace(candidate, info);
             } // end loop on candidates
         }
 
-        if (best_candidate_cost.isInfinity())
+        if (!is_consistent)
         {
             std::ostringstream message;
             message << "There is no valid candidate for the node "
@@ -278,25 +275,21 @@ int super_reconciliation(tree<Event>& tree)
         }
 
         candidates_per_node.emplace(&*it, candidates);
-        best_candidate_for_node.emplace(&*it, best_candidate);
     } // end postorder traversal
 
-    // Now that the whole map of candidates has been filled in, in particular
-    // for the root node, the optimal candidate for the root node fully
-    // determines the optimal assignation for the rest of the tree
-    Event* root = &*std::begin(tree);
-    root->synteny = best_candidate_for_node.at(root);
-
-    // It only remains to propagate the best assignations starting from
-    // the root node
+    // We know, for each node, a list of candidates and their associated cost.
+    // Each candidate fully determines the optimal assignation for the subtree
+    // below it. For the root node, we already know the optimal assignation: it
+    // is the one that was already assigned. Thus, it only remains to propagate
+    // the best assignations starting from the root node
     for (auto parent = tree.begin(); parent != tree.end(); ++parent)
     {
         if (tree.number_of_children(parent) == 2)
         {
-            auto synteny_root = parent->synteny;
+            auto synteny_parent = parent->synteny;
             auto child_left = tree.child(parent, 0);
             auto child_right = tree.child(parent, 1);
-            auto info = candidates_per_node.at(&*parent).at(synteny_root);
+            auto info = candidates_per_node.at(&*parent).at(synteny_parent);
 
             child_left->synteny = info.synteny_left;
             resolve_losses(tree, parent, child_left, info.partial_left);
@@ -306,6 +299,7 @@ int super_reconciliation(tree<Event>& tree)
         }
     }
 
+    Event* root = &*std::begin(tree);
     return static_cast<int>(
         candidates_per_node.at(root).at(root->synteny).cost);
 }
