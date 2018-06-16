@@ -327,7 +327,11 @@ std::string stringify_nhx_tree_helper(
 
     const TaggedNode& node = *root;
 
-    if (!node.name.empty())
+    if (node.name.empty())
+    {
+        result += "\"\"";
+    }
+    else
     {
         result += nhx_escape_ident(node.name);
     }
