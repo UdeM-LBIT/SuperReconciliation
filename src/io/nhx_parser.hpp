@@ -35,12 +35,12 @@ struct TaggedNode
  * tag ::= ':' ident '=' ident
  * ident ::= quoted_string | unquoted_string
  * quoted_string ::= '"' ('""' | [^"])* '"'
- * unquoted_string ::= [^()[],:;= \t\r\n]+
+ * unquoted_string ::= [^()[],:;=]*
  *
  * (Derived from https://home.cc.umanitoba.ca/~psgendb/doc/atv/NHX.pdf)
  *
  * Whitespace and comments (enclosed by square brackets) are ignored
- * during parsing.
+ * during parsing, except inside identifiers.
  *
  * @param input Input string to parse.
  *

@@ -113,7 +113,7 @@ struct NHXGrammar : qi::grammar<Iterator, Skipper, ::tree<TaggedNode>()>
         // A node is composed of a name, a length tag and a list of
         // custom tags. Each of those components is optional but the
         // order must be respected
-        node = (name | qi::attr(std::string{}))
+        node = name
             >> (length | qi::attr(0.))
             >> (tagmap | qi::attr(std::map<std::string, std::string>{}));
 
@@ -126,12 +126,14 @@ struct NHXGrammar : qi::grammar<Iterator, Skipper, ::tree<TaggedNode>()>
         tag = colon > ident > equals > ident;
 
         // Identifiers can either by unquoted or quoted. Unquoted identifiers
-        // may not contain the following chars: (, ), [, ], ',', :, ;, = or
-        // whitespace. Quoted identifiers may contain any char, but double
-        // quotes must be double-escaped
+        // may not contain the following chars: (, ), [, ], ',', :, ;.
+        // Whitespace is preserved inside unquoted identifiers, but not around
+        // them. To preserve surrounding whitespace, use a quoted identifier.
+        // Quoted identifiers may contain any char, but double quotes must be
+        // double-escaped
         ident = quoted_string | unquoted_string;
         unquoted_string
-            = qi::lexeme[+(qi::char_ - qi::char_("()[],:;= \t\r\n"))];
+            = qi::lexeme[*(qi::char_ - qi::char_("()[],:;="))];
         quoted_string = quote > qi::no_skip[*(
             (qi::lit('"') >> qi::char_('"')) // escaped double quotes
             | (qi::char_ - qi::char_('"')) // normal chars

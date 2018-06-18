@@ -174,4 +174,23 @@ TEST_CASE("Parse NHX trees")
         ++it;
         REQUIRE(it == tree.end());
     }
+
+    SECTION("Support emptiness and whitespace inside unquoted identifiers")
+    {
+        std::string input = ":2[&&NHX:empty=:whitespace= a b c ];";
+        auto tree = parse_nhx_tree(input);
+
+        auto it = tree.begin();
+        REQUIRE(it->name == "");
+        REQUIRE(it->length == Approx(2.));
+        REQUIRE(it->tags.size() == 2);
+        REQUIRE(it->tags.count("empty"));
+        REQUIRE(it->tags.at("empty") == "");
+        REQUIRE(it->tags.count("whitespace"));
+        REQUIRE(it->tags.at("whitespace") == "a b c ");
+        REQUIRE(tree.number_of_children(it) == 0);
+
+        ++it;
+        REQUIRE(it == tree.end());
+    }
 }
