@@ -9,9 +9,8 @@ import json
 import ete3
 import zss
 import numpy as np
-import matplotlib.pyplot as plt
 
-root_path = os.path.dirname(os.path.abspath(__file__))
+cur_dir = os.path.dirname(os.path.abspath(__file__))
 
 def parseNHX(intext):
     """Parse a NHX-formatted event tree using ete3"""
@@ -57,10 +56,9 @@ def simulate(
         simulated evolution and an erased version of the tree where loss events
         have been removed alongwith internal non-root synteny labelling.
     """
-
     process = subprocess.Popen(
         [
-            os.path.join(root_path, '../../build/Release/simulate'),
+            os.path.join(cur_dir, '../../build/Release/simulate'),
             str(seed), str(length), str(event_depth),
             str(duplication_probability), str(loss_probability),
             str(loss_length_rate)
@@ -86,9 +84,8 @@ def reconcile(intree):
     :param intree: input tree as an ete3 structure.
     :returns: reconciled tree.
     """
-
     process = subprocess.Popen(
-        [os.path.join(root_path, '../../build/Release/super_reconciliation')],
+        [os.path.join(cur_dir, '../../build/Release/super_reconciliation')],
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE)
@@ -110,7 +107,6 @@ def editDistance(before, after):
     :param after: second tree to compare.
     :returns: the edit distance between before and after.
     """
-
     def getLabel(node):
         return node.name
 
@@ -143,7 +139,6 @@ def simulateAndEvaluate(*args, **kwargs):
     :returns: a named tuple containing the edit distance and the time
         taken for reconciliation.
     """
-
     [original, erased] = simulate(*args, **kwargs)
     start_time = time.perf_counter()
     reconciled = reconcile(erased)
@@ -153,22 +148,24 @@ def simulateAndEvaluate(*args, **kwargs):
         editDistance(original, reconciled),
         end_time - start_time)
 
+SampleResult = collections.namedtuple(
+    'SampleResult',
+    ['distances', 'durations'])
+
 def sampledEvaluation(
     sample_size,
     lengths,
-    output_dir,
     *args, **kwargs):
     """
-    Create a plots for evaluation results for a given set of parameters
-    over various synteny lengths.
+    Evaluate simulation distance and reconciliation time for a given set of
+    parameters over various synteny lengths.
 
     :param sample_size: size of the sample to take for each length.
     :param lengths: lengths of the syntenies to test.
-    :param output_dir: directory into which the plot and raw results should
-        be outputted. This directory must exist.
     :param *: remaining arguments are forwarded to `simulateAndEvaluate` as is.
+    :return: a named tuple containing the set of distance and time results
+        for each length.
     """
-
     overall_distances = []
     overall_durations = []
 
@@ -191,57 +188,32 @@ def sampledEvaluation(
         overall_durations.append(current_durations)
 
     print()
-
-    # Create a plot for the edit distances relative to the length
-    # and also save the data in a JSON file
-
-    plot_distances = plt.figure(1)
-    plot_distances.clear()
-
-    plt.title('Distance from the reference to the reconciled tree')
-    plt.xlabel('Number of gene families in the ancestral synteny')
-    plt.ylabel('Edit distance')
-    plt.boxplot(overall_distances, positions=lengths)
-    plot_distances.savefig(
-        os.path.join(output_dir, 'distances.pdf'),
-        format='pdf')
-
-    with open(os.path.join(output_dir, 'distances.json'), 'w') as outfile:
-        json.dump(overall_distances, outfile)
-
-    # Create a plot for the computation duration relative to the length
-    # and also save the data in a JSON file
-
-    plot_durations = plt.figure(2)
-    plot_durations.clear()
-
-    plt.title('Reconciled tree computation time')
-    plt.xlabel('Number of gene families in the ancestral synteny')
-    plt.ylabel('Time (s)')
-    plt.boxplot(overall_durations, positions=lengths)
-    plot_durations.savefig(
-        os.path.join(output_dir, 'durations.pdf'),
-        format='pdf')
-
-    with open(os.path.join(output_dir, 'durations.json'), 'w') as outfile:
-        json.dump(overall_durations, outfile)
+    return SampleResult(overall_distances, overall_durations)
 
 if __name__ == '__main__':
-    sample_size = 500
+    sample_size = 5
     lengths = range(1, 11)
     loss_probs = np.linspace(0, 1, 11)
 
     for loss_prob in loss_probs:
-        print('Evaluation for loss_prob = ' + str(loss_prob)))
-        output_dir = os.path.join(root_path, 'p-' + str(loss_prob))
+        # Prevent from showing unsignificant digits
+        display_prob = "{:.15g}".format(loss_prob)
+
+        print('Evaluation for loss_prob = ' + display_prob)
+        out_dir = os.path.join(cur_dir, 'p-' + display_prob)
 
         try:
-            os.mkdir(output_dir)
+            os.mkdir(out_dir)
         except OSError:
             pass
 
-        sampledEvaluation(
+        [distances, durations] = sampledEvaluation(
             sample_size=sample_size,
             lengths=lengths,
-            output_dir=output_dir,
             loss_probability=loss_prob)
+
+        with open(os.path.join(out_dir, 'distances.json'), 'w') as out_file:
+            json.dump(distances, out_file)
+
+        with open(os.path.join(out_dir, 'durations.json'), 'w') as out_file:
+            json.dump(durations, out_file)
