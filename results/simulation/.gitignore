@@ -1,5 +1,0 @@
-# This directory contains the simulated trees that can be
-# generated using the ./generate.sh command
-
-*
-!.gitignore
