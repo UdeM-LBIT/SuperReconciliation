@@ -23,6 +23,14 @@ void resolve_losses(
     auto synteny_child = child->synteny;
     auto distance = synteny_parent.distanceTo(synteny_child, substring);
 
+    // Edge case: if we happen to generate an internal full loss node, we have
+    // to strip its subtree because empty speciations/duplications make no sense
+    if (parent->type == Event::Type::Loss && synteny_parent.empty())
+    {
+        tree.erase_children(parent);
+        return;
+    }
+
     // Only loss nodes are allowed to have at most a distance of one with their
     // child syntenies. Other nodes must have exactly the same synteny as their
     // children
@@ -39,6 +47,7 @@ void resolve_losses(
 
         auto new_child = tree.wrap(child, new_node);
         resolve_losses(tree, new_child, child, substring);
+        return;
     }
 }
 
