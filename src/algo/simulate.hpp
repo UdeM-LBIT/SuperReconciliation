@@ -19,34 +19,34 @@ struct EvolutionParams
     PRNG* random_generator = nullptr;
 
     /**
-     * The synteny to evolve from.
+     * Root synteny to evolve from.
      */
     Synteny base_synteny;
 
     /**
-     * Maximum depth of events on a given branch (does not count losses).
+     * Maximum depth of events on a branch, not counting losses.
      */
     int event_depth = 5;
 
     /**
-     * Probability that a given internal node should be a duplication node.
+     * Probability for any given internal node to be a duplication.
      */
     double duplication_probability = 0.5;
 
     /**
-     * Probability that a segmental loss should occur under a given
-     * internal node.
+     * Probability for a loss under any given speciation node.
      */
     double loss_probability = 0.2;
 
     /**
-     * Rate determining the length of lost segments.
+     * Parameter defining the geometric distribution of loss segments’ lengths.
      */
     double loss_length_rate = 0.5;
 };
 
 /**
- * Simulate the evolution of a synteny.
+ * Simulate the evolution of a synteny and generate a tree recording the
+ * history of the simulated events.
  *
  * @see EvolutionParams
  * @param params Parameters for the simulation.

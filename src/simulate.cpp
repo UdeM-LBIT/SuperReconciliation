@@ -11,7 +11,8 @@
  *
  * @param tree Input synteny tree.
  * @param root Node from which to start removing.
- * @param [is_root=true] Whether we start removing from the tree’s root.
+ * @param [is_root=true] Whether `root` is the root of the whole tree or of
+ * one of the subtrees.
  *
  * @return Resulting tree.
  */
@@ -31,6 +32,7 @@ void erase_tree_info(
 
         if (input.number_of_children(root) != 0)
         {
+            // Remove loss nodes, moving their only child up
             auto child = input.child(root, 0);
             input.flatten(root);
             input.erase(root);
