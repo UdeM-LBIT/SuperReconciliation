@@ -1,60 +1,11 @@
 #include "algo/simulate.hpp"
+#include "algo/erase.hpp"
 #include "io/nhx_parser.hpp"
 #include "util/tree.hpp"
 #include <algorithm>
 #include <functional>
 #include <random>
 #include <tree.hh>
-
-/**
- * Erase loss and internal synteny labelling from a synteny tree.
- *
- * @param tree Input synteny tree.
- * @param root Node from which to start removing.
- * @param [is_root=true] Whether `root` is the root of the whole tree or of
- * one of the subtrees.
- *
- * @return Resulting tree.
- */
-void erase_tree_info(
-    ::tree<Event> input,
-    ::tree<Event>::sibling_iterator root,
-    bool is_root = true)
-{
-    switch (root->type)
-    {
-    case Event::Type::None:
-        return;
-
-    case Event::Type::Loss:
-    {
-        root->synteny = Synteny{};
-
-        if (input.number_of_children(root) != 0)
-        {
-            // Remove loss nodes, moving their only child up
-            auto child = input.child(root, 0);
-            input.flatten(root);
-            input.erase(root);
-            erase_tree_info(input, child, false);
-        }
-
-        return;
-    }
-
-    case Event::Type::Duplication:
-    case Event::Type::Speciation:
-        if (!is_root)
-        {
-            // Erase all syntenies in internal nodes except for the root node
-            root->synteny = Synteny{};
-        }
-
-        erase_tree_info(input, input.child(root, 0), false);
-        erase_tree_info(input, input.child(root, 1), false);
-        return;
-    }
-}
 
 /**
  * Show help.
@@ -147,7 +98,7 @@ int main(int argc, const char* argv[])
 
     auto full_tree = simulate_evolution(params);
     auto erased_tree = full_tree;
-    erase_tree_info(erased_tree, std::begin(erased_tree));
+    erase_tree(erased_tree, std::begin(erased_tree));
 
     auto out_full_tree = tree_cast<Event, TaggedNode>(full_tree);
     auto out_erased_tree = tree_cast<Event, TaggedNode>(erased_tree);
