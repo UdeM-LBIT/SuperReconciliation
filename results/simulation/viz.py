@@ -58,10 +58,18 @@ for sub_dir in sub_dir_list:
             x = np.linspace(1, 11, 256, endpoint=True)
             y = list(map(lambda x : exp(x, *params), x))
 
-            plt.plot(x, y, linestyle='dashed', linewidth=1)
+            plt.plot(
+                x, y,
+                linestyle='dashed', linewidth=1,
+                label=r'Best fit exponential'.format(*params))
 
             # Overlay a box plot of durations
-            plt.boxplot(durations, positions=lengths)
+            box = plt.boxplot(durations, positions=lengths, patch_artist=True)
+
+            for patch in box['boxes']:
+                patch.set_facecolor('white')
+
+            plt.legend()
 
         i += 1
 
