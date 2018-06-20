@@ -23,11 +23,13 @@ void resolve_losses(
     auto synteny_child = child->synteny;
     auto distance = synteny_parent.distanceTo(synteny_child, substring);
 
-    // Edge case: if we happen to generate an internal full loss node, we have
-    // to strip its subtree because empty speciations/duplications make no sense
-    if (parent->type == Event::Type::Loss && synteny_parent.empty())
+    // Edge case: if we happen to generate a internal node which has an empty
+    // synteny, we must make sure that it does not have any child, because
+    // there can be no evolution from an empty set of genes
+    if (synteny_parent.empty())
     {
         tree.erase_children(parent);
+        parent->type = Event::Type::Loss;
         return;
     }
 
