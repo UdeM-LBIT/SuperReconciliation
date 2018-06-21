@@ -521,7 +521,7 @@ tree<T, tree_node_allocator>::tree(tree<T, tree_node_allocator>&& x)
 	head_initialise_();
 	if(x.head->next_sibling!=x.feet) { // move tree if non-empty only
 		head->next_sibling=x.head->next_sibling;
-		feet->prev_sibling=x.head->prev_sibling;
+		feet->prev_sibling=x.feet->prev_sibling;
 		x.head->next_sibling->prev_sibling=head;
 		x.feet->prev_sibling->next_sibling=feet;
 		x.head->next_sibling=x.feet;
@@ -581,7 +581,7 @@ tree<T,tree_node_allocator>& tree<T, tree_node_allocator>::operator=(tree<T, tre
 	{
 	if(this != &x) {
 		head->next_sibling=x.head->next_sibling;
-		feet->prev_sibling=x.head->prev_sibling;
+		feet->prev_sibling=x.feet->prev_sibling;
 		x.head->next_sibling->prev_sibling=head;
 		x.feet->prev_sibling->next_sibling=feet;
 		x.head->next_sibling=x.feet;
