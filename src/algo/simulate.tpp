@@ -1,4 +1,5 @@
 #include "simulate.hpp"
+#include "../util/numeric.hpp"
 #include <algorithm>
 #include <random>
 #include <tree.hh>
@@ -60,7 +61,7 @@ namespace detail
         // Randomly choose a length for the loss, and add 1 if the loss
         // is to be forced
         std::geometric_distribution<int> get_length{loss_leng_rate};
-        auto length = std::clamp(get_length(prng) + 1, 1, total_length);
+        auto length = clamp(get_length(prng) + 1, 1, total_length);
 
         // Randomly choose a starting point for the loss from the possible
         // positions given the already chosen length

@@ -347,10 +347,10 @@ std::string stringify_nhx_tree_helper(
     {
         result += "[&&NHX";
 
-        for (const auto& [key, value] : node.tags)
+        for (const auto& entry : node.tags)
         {
-            result += ":" + nhx_escape_ident(key)
-                + "=" + nhx_escape_ident(value);
+            result += ":" + nhx_escape_ident(entry.first)
+                + "=" + nhx_escape_ident(entry.second);
         }
 
         result += "]";
