@@ -27,10 +27,10 @@ def stringifyNHX(intree):
 
 def simulate(
     seed=0,
-    length=5,
+    length=10,
     event_depth=5,
     duplication_probability=0.5,
-    loss_probability=0.2,
+    loss_probability=0.5,
     loss_length_rate=0.5):
     """
     Simulate evolution starting from a synteny of given length.
@@ -56,7 +56,7 @@ def simulate(
     cur_dir = os.path.dirname(os.path.abspath(__file__))
     process = subprocess.Popen(
         [
-            os.path.join(cur_dir, '../../build/Release/simulate'),
+            os.path.join(cur_dir, '../../../build/Release/simulate'),
             str(seed), str(length), str(event_depth),
             str(duplication_probability), str(loss_probability),
             str(loss_length_rate)
@@ -87,7 +87,7 @@ def reconcile(intree):
 
     cur_dir = os.path.dirname(os.path.abspath(__file__))
     process = subprocess.Popen(
-        [os.path.join(cur_dir, '../../build/Release/super_reconciliation')],
+        [os.path.join(cur_dir, '../../../build/Release/super_reconciliation')],
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE)
