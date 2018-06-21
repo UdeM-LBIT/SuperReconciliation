@@ -1,5 +1,3 @@
-import collections as _collections
-
 def computeDLScore(tree):
     """Compute the duplication-loss score of a tree."""
     import functools
@@ -14,70 +12,91 @@ def computeDLScore(tree):
         map(computeDLScore, tree.children),
         0)
 
-EvaluationResult = _collections.namedtuple(
-    'EvaluationResult',
-    ['scoredif', 'duration'])
-
-def simulateAndEvaluate(*args, **kwargs):
+def simulateAndEvaluate(kind, **kwargs):
     """
-    Simulate an evolution from a synteny, generate a synteny tree, and evaluate:
-        – the time taken to reconcile the erased tree,
-        — the difference between the original DL score and the reconciled score.
+    Simulate an evolution from a synteny, generate a synteny tree, and evaluate
+    either:
+        – the time taken to reconcile the erased tree ('duration'),
+        — the difference between the original DL score and the reconciled score
+          ('scoredif').
 
-    :param *: same arguments as `simulate`
-    :returns: a named tuple containing the DL score difference
-        and the duration for which the reconciliation ran.
+    :param kind: the metric to evaluate, either 'scoredif' or 'duration'.
+    :param *: remaining arguments are forwarded to `simulate` as is.
+    :returns: evaluation result.
     """
     from . import interface
     import time
 
-    [original, erased] = interface.simulate(*args, **kwargs)
+    [original, erased] = interface.simulate(**kwargs)
     start_time = time.perf_counter()
     reconciled = interface.reconcile(erased)
     end_time = time.perf_counter()
 
-    original_score = computeDLScore(original)
-    reconciled_score = computeDLScore(reconciled)
+    if kind == 'scoredif':
+        original_score = computeDLScore(original)
+        reconciled_score = computeDLScore(reconciled)
 
-    if original_score < reconciled_score:
-        raise Exception('Unexpected non-parcimonious reconciliation!')
+        if original_score < reconciled_score:
+            raise Exception('Unexpected non-parcimonious reconciliation!')
 
-    return EvaluationResult(
-        scoredif=computeDLScore(original) - computeDLScore(reconciled),
-        duration=end_time - start_time)
+        return original_score - reconciled_score
+    elif kind == 'duration':
+        return end_time - start_time
+    else:
+        raise Exception('Unknown metric kind: ' + kind)
 
-def sampleParameterizedSimulation(
+def _evaluateSample(param_value, sample_size, param_name, args):
+    from functools import partial
+
+    local_args = args.copy()
+    local_args[param_name] = param_value
+
+    return (param_value, list(map(
+        lambda _ : simulateAndEvaluate(**local_args),
+        range(0, sample_size))))
+
+def sample(
     sample_size,
-    ranged_param,
-    range_value,
+    param_name,
+    param_values,
+    jobs,
     **kwargs):
     """
     Perform an evaluation of a sample of simulated evolutions for each
     value of a parameter over a given range.
 
-    :param sample_size: size of the sample to take.
-    :param ranged_param: name of the parameter to range over.
-    :param range_value: range of values for the parameter to take.
+    :param sample_size: size of the sample to take for each range value.
+    :param param_name: name of the variable simulation parameter.
+    :param param_values: list of values for the parameter to take.
+    :param jobs: number of parallel processes to use for the computation (if 0,
+        uses one process per available core).
     :param *: remaining arguments are forwarded to `simulateAndEvaluate` as is.
-    :return: a dictionary containing, for each value of the range, a named
-        tuple containing the result of the evaluation for each sample.
+    :return: a dictionary containing, for each value of the range, a list of
+        metric results for each sample.
     """
-    result = {}
+    import multiprocessing
+    from functools import partial
+    import sys
 
-    for value in range_value:
-        evaluation = {'scoredif': [], 'duration': []}
+    if jobs == 0:
+        jobs = multiprocessing.cpu_count()
 
-        for i in range(0, sample_size):
-            kwargs[ranged_param] = value
-            sample_evaluation = simulateAndEvaluate(**kwargs)
+    pool = multiprocessing.Pool(jobs)
+    results = []
+    message = '\r[{:%}] {}/{} {} values evaluated'
 
-            evaluation['scoredif'].append(sample_evaluation.scoredif)
-            evaluation['duration'].append(sample_evaluation.duration)
+    sys.stderr.write('> Using {} process(es) to compute\n'.format(jobs))
+    sys.stderr.write(message.format(0, 0, len(param_values), param_name))
 
-            print('evaluating sample {} / {} for {} {} / {}{}'.format(
-                i + 1, sample_size, ranged_param,
-                value, max(range_value), ' ' * 20), end='\r')
+    for i, result in enumerate(pool.imap_unordered(
+            partial(_evaluateSample,
+                sample_size=sample_size,
+                param_name=param_name,
+                args=kwargs),
+            param_values)):
+        sys.stderr.write(message.format(
+            (i + 1) / len(param_values), i + 1,
+            len(param_values), param_name))
+        results.append(result)
 
-        result[value] = evaluation
-
-    return result
+    return dict(results)
