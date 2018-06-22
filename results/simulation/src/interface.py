@@ -66,10 +66,11 @@ def simulate(
         stderr=subprocess.PIPE)
 
     [data, error] = process.communicate()
-    [original, erased, error] = data.decode().split('\n')
+    [original, erased, _] = data.decode().split('\n')
 
     if process.returncode != 0:
-        raise Exception(error.decode())
+        raise Exception('Subprocess terminated abnormally.\n\n'
+            + 'stdin={}\n\nstdout={}'.format(data.decode(), error.decode()))
 
     return SimulationResult(parseNHX(original), parseNHX(erased))
 
@@ -97,6 +98,7 @@ def reconcile(intree):
     outtext = data.decode()
 
     if process.returncode != 0:
-        raise Exception(error.decode())
+        raise Exception('Subprocess terminated abnormally.\n\n'
+            + 'stdin={}\n\nstdout={}'.format(data.decode(), error.decode()))
 
     return parseNHX(outtext)

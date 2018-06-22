@@ -12,7 +12,7 @@ def computeDLScore(tree):
         map(computeDLScore, tree.children),
         0)
 
-def simulateAndEvaluate(kind, **kwargs):
+def simulateAndEvaluate(metrics, **kwargs):
     """
     Simulate an evolution from a synteny, generate a synteny tree, and evaluate
     either:
@@ -20,7 +20,8 @@ def simulateAndEvaluate(kind, **kwargs):
         — the difference between the original DL score and the reconciled score
           ('scoredif').
 
-    :param kind: the metric to evaluate, either 'scoredif' or 'duration'.
+    :param metrics: a list of metrics to evaluate, either 'scoredif'
+        or 'duration'.
     :param *: remaining arguments are forwarded to `simulate` as is.
     :returns: evaluation result.
     """
@@ -32,18 +33,21 @@ def simulateAndEvaluate(kind, **kwargs):
     reconciled = interface.reconcile(erased)
     end_time = time.perf_counter()
 
-    if kind == 'scoredif':
+    result = {}
+
+    if metrics.count('scoredif') >= 1:
         original_score = computeDLScore(original)
         reconciled_score = computeDLScore(reconciled)
 
         if original_score < reconciled_score:
             raise Exception('Unexpected non-parcimonious reconciliation!')
 
-        return original_score - reconciled_score
-    elif kind == 'duration':
-        return end_time - start_time
-    else:
-        raise Exception('Unknown metric kind: ' + kind)
+        result['scoredif'] = original_score - reconciled_score
+
+    if metrics.count('duration') >= 1:
+        result['duration'] = end_time - start_time
+
+    return result
 
 def _evaluateSample(param_value, sample_size, param_name, args):
     from functools import partial
@@ -72,7 +76,7 @@ def sample(
         uses one process per available core).
     :param *: remaining arguments are forwarded to `simulateAndEvaluate` as is.
     :return: a dictionary containing, for each value of the range, a list of
-        metric results for each sample.
+        results for each metric for each sample.
     """
     import multiprocessing
     from functools import partial
@@ -85,8 +89,9 @@ def sample(
     results = []
     message = '\r[{:%}] {}/{} {} values evaluated'
 
-    sys.stderr.write('> Using {} process(es) to compute\n'.format(jobs))
-    sys.stderr.write(message.format(0, 0, len(param_values), param_name))
+    print('> Using {} process(es) to compute'.format(jobs))
+    print(message.format(0, 0, len(param_values), param_name),
+        flush=True, end='')
 
     for i, result in enumerate(pool.imap_unordered(
             partial(_evaluateSample,
@@ -94,9 +99,12 @@ def sample(
                 param_name=param_name,
                 args=kwargs),
             param_values)):
-        sys.stderr.write(message.format(
+        print(message.format(
             (i + 1) / len(param_values), i + 1,
-            len(param_values), param_name))
+            len(param_values), param_name),
+            flush=True, end='')
+
         results.append(result)
 
+    print()
     return dict(results)
