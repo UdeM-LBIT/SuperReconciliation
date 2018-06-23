@@ -9,7 +9,7 @@
  *
  * @see simulate_evolution
  */
-struct EvolutionParams
+struct SimulationParams
 {
     /**
      * Root synteny to evolve from.
@@ -37,13 +37,13 @@ struct EvolutionParams
     double loss_length_rate = 0.5;
 };
 
-bool operator==(const EvolutionParams&, const EvolutionParams&);
+bool operator==(const SimulationParams&, const SimulationParams&);
 
 namespace std
 {
-    template<> struct hash<EvolutionParams>
+    template<> struct hash<SimulationParams>
     {
-        using argument_type = EvolutionParams;
+        using argument_type = SimulationParams;
         using result_type = std::size_t;
 
         result_type operator()(argument_type const& a) const;
@@ -54,7 +54,7 @@ namespace std
  * Simulate the evolution of a synteny and generate a tree recording the
  * history of the simulated events.
  *
- * @see EvolutionParams
+ * @see SimulationParams
  * @param prng Pseudo-random number generator to use, from C++’s <random>
  * library generators (eg. std::mt19937).
  * @param params Parameters for the simulation.
@@ -62,7 +62,7 @@ namespace std
  * @return Simulated event tree.
  */
 template<typename PRNG>
-::tree<Event> simulate_evolution(PRNG&, EvolutionParams);
+::tree<Event> simulate_evolution(PRNG&, SimulationParams);
 
 #include "simulate.tpp"
 

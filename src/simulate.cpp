@@ -19,22 +19,53 @@ using perf_clock = chrono::steady_clock;
 using us = chrono::microseconds;
 using json = nlohmann::json;
 
+/**
+ * Input/output structure for specifying which metrics have to be evaluated in
+ * a simulation-evaluation step and to provide the results of this evaluation.
+ */
 struct EvaluationResults
 {
+    /**
+     * Difference of DL scores between the reference and the reconciled trees.
+     */
     unsigned scoredif = 0;
+
+    /**
+     * Duration of the reconciliation step in microseconds.
+     */
     long duration = 0;
 
+    /**
+     * Whether to compute the DL score difference.
+     */
     bool needs_scoredif = false;
+
+    /**
+     * Whether to measure the reconciliation time.
+     */
     bool needs_duration = false;
 };
 
+/**
+ * Evaluate given metrics of the reconciliation algorithm with a simulated
+ * input under the given set of simulation parameters.
+ *
+ * @param prng Pseudo-random number generator to use for the simulation.
+ * @param results Input/output argument for the metrics.
+ * @param params Simulation parameters.
+ */
 template<typename PRNG>
 void evaluate(
     PRNG& prng,
     EvaluationResults& results,
-    EvolutionParams& params)
+    SimulationParams& params)
 {
+    // Simulate the evolution of a fixed-size synteny by performing random
+    // speciations, duplications and losses
     auto reference_tree = simulate_evolution(prng, params);
+
+    // Erase loss and internal synteny labelling information from the
+    // reference tree to make the input for the reconciliation algorithm
     auto reconciled_tree = reference_tree;
     erase_tree(reconciled_tree, std::begin(reconciled_tree));
 
@@ -70,25 +101,40 @@ void evaluate(
     }
 }
 
+/**
+ * All arguments that can be passed to the simulation program.
+ * See below for a description of each argument.
+ */
 struct Arguments
 {
     std::string output;
     std::vector<std::string> metrics;
     unsigned sample_size;
     unsigned jobs;
-    MultivaluedNumber<unsigned> synteny_size = 5;
-    MultivaluedNumber<unsigned> event_depth = 5;
-    MultivaluedNumber<double> duplication_probability = 0.5;
-    MultivaluedNumber<double> loss_probability = 0.5;
-    MultivaluedNumber<double> loss_length_rate = 0.5;
+
+    MultivaluedNumber<unsigned> synteny_size;
+    MultivaluedNumber<unsigned> event_depth;
+    MultivaluedNumber<double> duplication_probability;
+    MultivaluedNumber<double> loss_probability;
+    MultivaluedNumber<double> loss_length_rate;
 };
 
+/**
+ * Read arguments passed to the program and produce the
+ * help message if requested by the user.
+ *
+ * @param result Filled with arguments passed to the program or
+ * appropriate default values.
+ * @param argc Number of arguments in argv.
+ * @param argv Tokenized list of arguments passed to the program.
+ * @return True if the program may continue, or false if it has
+ * to be stopped.
+ */
 bool read_arguments(Arguments& result, int argc, const char* argv[])
 {
     po::options_description root;
 
     po::options_description req_group{"Required arguments"};
-
     req_group.add_options()
         ("output,o",
          po::value(&result.output)
@@ -102,10 +148,9 @@ bool read_arguments(Arguments& result, int argc, const char* argv[])
             ->required(),
          "the metrics to evaluate, either 'scoredif' or 'duration'")
     ;
-
     root.add(req_group);
-    po::options_description gen_opt_group{"General options"};
 
+    po::options_description gen_opt_group{"General options"};
     gen_opt_group.add_options()
         ("help,h", "show this help message")
 
@@ -113,22 +158,21 @@ bool read_arguments(Arguments& result, int argc, const char* argv[])
          po::value(&result.sample_size)
             ->value_name("SIZE")
             ->default_value(1),
-         "number of samples to use for each set of parameters")
+         "number of samples to take for each set of parameters")
 
         ("jobs,j",
          po::value(&result.jobs)
             ->value_name("JOBS")
             ->default_value(0),
-         "number of threads to use for computing. If 0, will use "
-         "automatically determine the best amount of threads. Set to "
-         "1 to disable multithreading")
+         "number of threads to use for computing. If 0, automatically "
+         "evaluate the best amount of threads based on the resources "
+         "of the machine. Set to 1 to disable multithreading")
     ;
-
     root.add(gen_opt_group);
+
     po::options_description sim_opt_group{"Simulation parameters (accept "
         "either a single value, a set of values '{1, 2, 3}'\nor a range "
         "of values '[1:100]' with an optional step argument '[1:100:10]')"};
-
     sim_opt_group.add_options()
         ("synteny-size,s",
          po::value(&result.synteny_size)
@@ -197,8 +241,7 @@ struct ThreadLifecycle
      */
     ThreadLifecycle()
     {
-        std::random_device rd;
-        prng.seed(rd());
+        seed();
     }
 
     /**
@@ -207,22 +250,34 @@ struct ThreadLifecycle
      */
     ThreadLifecycle(const ThreadLifecycle&)
     {
-        // We need a different seed for each thread
-        std::random_device rd;
-        auto seed = rd();
-        prng.seed(seed);
+        seed();
     }
 
     // Thread-local pseudo-random number generator
     std::mt19937 prng;
+
+private:
+    void seed()
+    {
+        std::random_device rd;
+        this->prng.seed(rd());
+    }
 };
 
+/**
+ * Display progress on standard output.
+ */
 void report_progress(unsigned long performed, unsigned long total)
 {
-    std::cout << std::fixed << std::setprecision(2) << "\r["
+    if (performed != total && performed % 10 != 0)
+    {
+        return;
+    }
+
+    std::cout << std::fixed << std::setprecision(2) << "["
         << std::setw(6) << ((static_cast<double>(performed) / total) * 100)
         << "%] " << performed << "/" << total << " tasks performed"
-        << "               " << std::flush;
+        << std::endl;
 }
 
 int main(int argc, const char* argv[])
@@ -241,13 +296,15 @@ int main(int argc, const char* argv[])
     }
 
     ThreadLifecycle lifecycle;
+    bool needs_scoredif = contains(args.metrics, "scoredif"s);
+    bool needs_duration = contains(args.metrics, "duration"s);
 
-    // Stores all the results for each set of parameters and each sample
+    // Stores all the results for all samples of each set of parameters
     json results = json::array();
 
     // For each set of parameters, store the index in the results array
     // at which measurements are stored
-    std::unordered_map<EvolutionParams, std::size_t> find_params_index;
+    std::unordered_map<SimulationParams, std::size_t> find_params_index;
 
     // Track task progression
     unsigned long performed_tasks = 0;
@@ -260,9 +317,13 @@ int main(int argc, const char* argv[])
 
     report_progress(performed_tasks, total_tasks);
 
-    #pragma omp parallel for \
-        firstprivate(lifecycle, args, total_tasks) default(none) \
-        shared(results, find_params_index, performed_tasks) \
+    #pragma omp parallel for                                                   \
+        firstprivate(                                                          \
+            lifecycle, args, total_tasks,                                      \
+            needs_scoredif, needs_duration)                                    \
+        shared(                                                                \
+            results, find_params_index, performed_tasks)                       \
+        default(none)                                                          \
         collapse(6) schedule(dynamic)
     for (unsigned sample_id = 0; sample_id < args.sample_size; ++sample_id)
     {
@@ -291,10 +352,7 @@ int main(int argc, const char* argv[])
         loss_length_rate < args.loss_length_rate.end();
         ++loss_length_rate)
     {
-        bool needs_scoredif = contains(args.metrics, "scoredif"s);
-        bool needs_duration = contains(args.metrics, "duration"s);
-
-        EvolutionParams sample_params;
+        SimulationParams sample_params;
         sample_params.base_synteny = Synteny::generateDummy(*synteny_size);
         sample_params.event_depth = *event_depth;
         sample_params.duplication_probability = *duplication_prob;

@@ -5,7 +5,7 @@
 #include <random>
 #include <tree.hh>
 
-bool operator==(const EvolutionParams& a, const EvolutionParams& b)
+bool operator==(const SimulationParams& a, const SimulationParams& b)
 {
     return
         a.base_synteny == b.base_synteny
@@ -15,8 +15,8 @@ bool operator==(const EvolutionParams& a, const EvolutionParams& b)
         && a.loss_length_rate == b.loss_length_rate;
 }
 
-std::hash<EvolutionParams>::result_type
-std::hash<EvolutionParams>::operator()(const argument_type& a) const
+std::hash<SimulationParams>::result_type
+std::hash<SimulationParams>::operator()(const argument_type& a) const
 {
     result_type seed = boost::hash_range(
         std::begin(a.base_synteny),
@@ -258,7 +258,7 @@ namespace detail
 
 // Same as detail::simulate_evolution, albeit with a better public interface
 template<typename PRNG>
-::tree<Event> simulate_evolution(PRNG& prng, EvolutionParams params)
+::tree<Event> simulate_evolution(PRNG& prng, SimulationParams params)
 {
     return detail::simulate_evolution(
         prng, params.base_synteny,
