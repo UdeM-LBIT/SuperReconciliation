@@ -299,7 +299,7 @@ int main(int argc, const char* argv[])
         sample_params.event_depth = *event_depth;
         sample_params.duplication_probability = *duplication_prob;
         sample_params.loss_probability = *loss_prob;
-        sample_params.loss_length_rate = *args.loss_length_rate;
+        sample_params.loss_length_rate = *loss_length_rate;
 
         EvaluationResults sample_info;
         sample_info.needs_scoredif = needs_scoredif;
