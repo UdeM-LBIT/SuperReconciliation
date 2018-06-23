@@ -1,8 +1,34 @@
 #include "simulate.hpp"
 #include "../util/numeric.hpp"
 #include <algorithm>
+#include <boost/container_hash/hash.hpp>
 #include <random>
 #include <tree.hh>
+
+bool operator==(const EvolutionParams& a, const EvolutionParams& b)
+{
+    return
+        a.base_synteny == b.base_synteny
+        && a.event_depth == b.event_depth
+        && a.duplication_probability == b.duplication_probability
+        && a.loss_probability == b.loss_probability
+        && a.loss_length_rate == b.loss_length_rate;
+}
+
+std::hash<EvolutionParams>::result_type
+std::hash<EvolutionParams>::operator()(const argument_type& a) const
+{
+    result_type seed = boost::hash_range(
+        std::begin(a.base_synteny),
+        std::end(a.base_synteny));
+
+    boost::hash_combine(seed, a.event_depth);
+    boost::hash_combine(seed, a.duplication_probability);
+    boost::hash_combine(seed, a.loss_probability);
+    boost::hash_combine(seed, a.loss_length_rate);
+
+    return seed;
+}
 
 namespace detail
 {
@@ -232,10 +258,10 @@ namespace detail
 
 // Same as detail::simulate_evolution, albeit with a better public interface
 template<typename PRNG>
-::tree<Event> simulate_evolution(EvolutionParams<PRNG> params)
+::tree<Event> simulate_evolution(PRNG& prng, EvolutionParams params)
 {
     return detail::simulate_evolution(
-        *params.random_generator, params.base_synteny,
+        prng, params.base_synteny,
         params.event_depth, params.duplication_probability,
         params.loss_probability, params.loss_length_rate);
 }
