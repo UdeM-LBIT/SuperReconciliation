@@ -73,6 +73,12 @@ typename Container::const_iterator MultivaluedNumber<T, Container>::cend()
 }
 
 template<typename T, typename Container>
+std::size_t MultivaluedNumber<T, Container>::size() const
+{
+    return this->values.size();
+}
+
+template<typename T, typename Container>
 T MultivaluedNumber<T, Container>::operator*() const
 {
     if (this->isMultivalued())

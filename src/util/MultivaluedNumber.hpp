@@ -65,6 +65,13 @@ public:
     typename Container::const_iterator cend() const;
 
     /**
+     * Get the number of wrapped values.
+     *
+     * @return How many values are held in this instance.
+     */
+    std::size_t size() const;
+
+    /**
      * Get the single wrapped value.
      *
      * @throws std::logic_error If this instance does not hold
