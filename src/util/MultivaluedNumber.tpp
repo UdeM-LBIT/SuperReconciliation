@@ -73,7 +73,7 @@ typename Container::const_iterator MultivaluedNumber<T, Container>::cend()
 }
 
 template<typename T, typename Container>
-MultivaluedNumber<T, Container>::operator T() const
+T MultivaluedNumber<T, Container>::operator*() const
 {
     if (this->isMultivalued())
     {
@@ -86,7 +86,7 @@ MultivaluedNumber<T, Container>::operator T() const
 }
 
 template<typename T, typename Container>
-MultivaluedNumber<T, Container>::operator Container() const
+Container MultivaluedNumber<T, Container>::getValues() const
 {
     return this->values;
 }
@@ -112,7 +112,7 @@ std::ostream& operator<<(std::ostream& out, const MultivaluedNumber<T, Container
     }
     else
     {
-        out << static_cast<T>(v);
+        out << *v;
     }
 
     return out;

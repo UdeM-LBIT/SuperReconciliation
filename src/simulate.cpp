@@ -6,6 +6,7 @@
 #include <boost/program_options.hpp>
 #include <chrono>
 #include <nlohmann/json.hpp>
+#include <omp.h>
 #include <ostream>
 #include <fstream>
 #include <vector>
@@ -120,7 +121,7 @@ struct Arguments
     std::string output;
     std::vector<std::string> metrics;
     unsigned sample_size;
-    unsigned long seed;
+    unsigned jobs;
     MultivaluedNumber<unsigned> synteny_size = 5;
     MultivaluedNumber<unsigned> event_depth = 5;
     MultivaluedNumber<double> duplication_probability = 0.5;
@@ -160,12 +161,13 @@ bool read_arguments(Arguments& result, int argc, const char* argv[])
             ->default_value(1),
          "number of samples to use for each set of parameters")
 
-        ("seed",
-         po::value(&result.seed)
-            ->value_name("NUMBER")
+        ("jobs,j",
+         po::value(&result.jobs)
+            ->value_name("JOBS")
             ->default_value(0),
-         "seed to use for pseudo-random number generation. If 0, will "
-         "use a system-provided random number")
+         "number of threads to use for computing. If 0, will use "
+         "automatically determine the best amount of threads. Set to "
+         "1 to disable multithreading")
     ;
 
     root.add(gen_opt_group);
@@ -230,6 +232,40 @@ bool read_arguments(Arguments& result, int argc, const char* argv[])
     return true;
 }
 
+/**
+ * Lifecycle object that is private to each worker thread.
+ * (derived from https://stackoverflow.com/a/10737658)
+ */
+struct ThreadLifecycle
+{
+    /**
+     * Normal constructor for non-multithreaded scenarios.
+     */
+    ThreadLifecycle()
+    {
+        std::random_device rd;
+        prng.seed(rd());
+    }
+
+    /**
+     * This copy constructor gets called for each new worker thread
+     * and serves as the initialization function.
+     */
+    ThreadLifecycle(const ThreadLifecycle&)
+    {
+        // We need a different seed for each thread
+        std::random_device rd;
+        auto seed = rd();
+        prng.seed(seed);
+
+        std::cerr << "Thread #" + std::to_string(omp_get_thread_num())
+            + " started with seed: " + std::to_string(seed) + "\n";
+    }
+
+    // Thread-local pseudo-random number generator
+    std::mt19937 prng;
+};
+
 int main(int argc, const char* argv[])
 {
     using namespace std::string_literals;
@@ -240,47 +276,67 @@ int main(int argc, const char* argv[])
         return EXIT_SUCCESS;
     }
 
-    std::ofstream output(args.output);
-    bool needs_scoredif = contains(args.metrics, "scoredif"s);
-    bool needs_duration = contains(args.metrics, "duration"s);
+    if (args.jobs > 0)
+    {
+        omp_set_num_threads(args.jobs);
+    }
 
+    ThreadLifecycle lifecycle;
     json result = json::array();
-    unsigned long seed = args.seed;
 
-    if (seed == 0)
-    {
-        std::random_device rd;
-        seed = rd();
-    }
+    // Reduction for JSON arrays ([] + [] -> [])
+    #pragma omp declare reduction(jsonarray : json : \
+            omp_out.insert(omp_out.end(), omp_in.begin(), omp_in.end())) \
+        initializer(omp_priv = json::array())
 
-    std::mt19937 prng{seed};
-    EvolutionParams<std::mt19937> params;
-    params.random_generator = &prng;
+    #pragma omp parallel for \
+        firstprivate(lifecycle, args) default(none) \
+        collapse(5) schedule(dynamic) \
+        reduction(jsonarray : result)
+    for (
+        auto synteny_size = args.synteny_size.begin();
+        synteny_size < args.synteny_size.end();
+        ++synteny_size)
+    {
+    for (
+        auto event_depth = args.event_depth.begin();
+        event_depth < args.event_depth.end();
+        ++event_depth)
+    {
+    for (
+        auto duplication_prob = args.duplication_probability.begin();
+        duplication_prob < args.duplication_probability.end();
+        ++duplication_prob)
+    {
+    for (
+        auto loss_prob = args.loss_probability.begin();
+        loss_prob < args.loss_probability.end();
+        ++loss_prob)
+    {
+    for (
+        auto loss_length_rate = args.loss_length_rate.begin();
+        loss_length_rate < args.loss_length_rate.end();
+        ++loss_length_rate)
+    {
+        bool needs_scoredif = contains(args.metrics, "scoredif"s);
+        bool needs_duration = contains(args.metrics, "duration"s);
 
-    for (auto synteny_size : args.synteny_size)
-    {
-        params.base_synteny = Synteny::generateDummy(synteny_size);
-    for (auto event_depth : args.event_depth)
-    {
-        params.event_depth = event_depth;
-    for (auto duplication_probability : args.duplication_probability)
-    {
-        params.duplication_probability = duplication_probability;
-    for (auto loss_probability : args.loss_probability)
-    {
-        params.loss_probability = loss_probability;
-    for (auto loss_length_rate : args.loss_length_rate)
-    {
-        params.loss_length_rate = loss_length_rate;
-        result.push_back(sample(
+        EvolutionParams<std::mt19937> params;
+        params.random_generator = &lifecycle.prng;
+        params.base_synteny = Synteny::generateDummy(*synteny_size);
+        params.event_depth = *event_depth;
+        params.duplication_probability = *duplication_prob;
+        params.loss_probability = *loss_prob;
+        params.loss_length_rate = *loss_length_rate;
+
+        json sample_result = sample(
             params, args.sample_size,
-            needs_scoredif, needs_duration));
-    }
-    }
-    }
-    }
-    }
+            needs_scoredif, needs_duration);
 
+        result.push_back(sample_result);
+    }}}}}
+
+    std::ofstream output(args.output);
     output << result;
     return EXIT_SUCCESS;
 }

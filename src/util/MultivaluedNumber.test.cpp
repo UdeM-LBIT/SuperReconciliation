@@ -17,9 +17,12 @@ TEST_CASE("Supports monovalued numbers")
         MultivaluedNumber<int> b(5);
         MultivaluedNumber<int> c(1, 10, 1);
 
-        REQUIRE(static_cast<int>(a) == 0);
-        REQUIRE(static_cast<int>(b) == 5);
-        REQUIRE_THROWS_AS(static_cast<int>(c), std::logic_error);
+        REQUIRE(*a == 0);
+        REQUIRE(*b == 5);
+        REQUIRE_THROWS_AS(*c, std::logic_error);
+
+        REQUIRE(a.getValues() == std::vector<int>{0});
+        REQUIRE(b.getValues() == std::vector<int>{5});
     }
 
     SECTION("Iterate on a single value")
@@ -87,6 +90,12 @@ TEST_CASE("Supports multivalued numbers")
 
         REQUIRE(it == std::end(a));
     }
+
+    SECTION("Access values")
+    {
+        MultivaluedNumber<int> a(1, 5, 2);
+        REQUIRE(a.getValues() == std::vector<int>{1, 3, 5});
+    }
 }
 
 TEST_CASE("Input from istream")
@@ -97,19 +106,19 @@ TEST_CASE("Input from istream")
         MultivaluedNumber<int> a;
         in1 >> a;
         REQUIRE(in1);
-        REQUIRE(static_cast<int>(a) == 5);
+        REQUIRE(*a == 5);
 
         std::istringstream in2("   105.2 ");
         MultivaluedNumber<double> b;
         in2 >> b;
         REQUIRE(in2);
-        REQUIRE(static_cast<double>(b) == Approx(105.2));
+        REQUIRE(*b == Approx(105.2));
 
         std::istringstream in3(" 5   100");
         MultivaluedNumber<short> c;
         in3 >> c;
         REQUIRE(in3);
-        REQUIRE(static_cast<short>(c) == 5);
+        REQUIRE(*c == 5);
 
         std::istringstream in4("?");
         MultivaluedNumber<int> d;

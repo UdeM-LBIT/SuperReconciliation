@@ -65,20 +65,20 @@ public:
     typename Container::const_iterator cend() const;
 
     /**
-     * Explicitly convert a multivalued number to a single value.
+     * Get the single wrapped value.
      *
      * @throws std::logic_error If this instance does not hold
      * exactly one number.
      * @return The single contained value.
      */
-    explicit operator T() const;
+    T operator*() const;
 
     /**
-     * Explicitly convert a multivalued number to a list of contained values.
+     * Get the list of held values.
      *
      * @return List of contained values.
      */
-    explicit operator Container() const;
+    Container getValues() const;
 
     /**
      * Write a multivalued number to an output stream.
