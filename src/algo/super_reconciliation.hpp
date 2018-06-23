@@ -6,6 +6,14 @@
 #include <tree.hh>
 
 /**
+ * Compute the duplication-loss score of a fully labelled tree.
+ *
+ * @param tree Tree for which to compute the duplication-loss score.
+ * @return Computed duplication-loss score.
+ */
+unsigned get_dl_score(tree<Event>& tree);
+
+/**
  * Compute synteny assignations of internal nodes in a synteny tree so as to
  * minimize the total cost in duplications and segmental losses. This is the
  * “Super-Reconciliation” problem as described in “Reconstructing the History of
@@ -18,9 +26,7 @@
  * node.
  *
  * @throws If the order is not consistent or if the tree is improperly labeled.
- * @return Cost of the computed optimal synteny assignation (number of
- * segmental duplications and losses).
  */
-int super_reconciliation(tree<Event>& tree);
+void super_reconciliation(tree<Event>& tree);
 
 #endif // ALGO_SUPER_RECONCILIATION_HPP

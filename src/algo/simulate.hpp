@@ -36,7 +36,7 @@ struct EvolutionParams
     /**
      * Probability for a loss under any given speciation node.
      */
-    double loss_probability = 0.2;
+    double loss_probability = 0.5;
 
     /**
      * Parameter defining the geometric distribution of loss segments’ lengths.

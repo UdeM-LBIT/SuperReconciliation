@@ -53,15 +53,40 @@ void resolve_losses(
     }
 }
 
-int super_reconciliation(tree<Event>& tree)
+namespace
+{
+unsigned get_dl_score_helper(tree<Event>& tree, ::tree<Event>::iterator root)
+{
+    unsigned score = 0;
+
+    if (root->type == Event::Type::Duplication
+            || root->type == Event::Type::Loss)
+    {
+        score = 1;
+    }
+
+    for (auto it = tree.begin(root); it != tree.end(root); ++it)
+    {
+        score += get_dl_score_helper(tree, it);
+    }
+
+    return score;
+}
+}
+
+int get_dl_score(tree<Event>& tree)
+{
+    return get_dl_score_helper(tree, std::begin(tree));
+}
+
+void super_reconciliation(tree<Event>& tree)
 {
     // Exact solution to the problem using a dynamic programming approach,
     // implementing the method described in “Reconstructing the History of
     // Syntenies Through Super-Reconciliation” (El-Mabrouk et al., 2015)
-
     if (tree.empty())
     {
-        return 0;
+        return;
     }
 
     // Costs (number of segmental duplications and losses) are modeled by an
@@ -309,8 +334,4 @@ int super_reconciliation(tree<Event>& tree)
             resolve_losses(tree, parent, child_right, info.partial_right);
         }
     }
-
-    Event* root = &*std::begin(tree);
-    return static_cast<int>(
-        candidates_per_node.at(root).at(root->synteny).cost);
 }

@@ -1,89 +1,251 @@
 #include "algo/simulate.hpp"
 #include "algo/erase.hpp"
-#include "io/nhx_parser.hpp"
-#include "util/tree.hpp"
-#include <algorithm>
-#include <functional>
-#include <random>
-#include <tree.hh>
+#include "algo/super_reconciliation.hpp"
+#include "util/containers.hpp"
+#include "util/MultivaluedNumber.hpp"
+#include <boost/program_options.hpp>
+#include <chrono>
+#include <nlohmann/json.hpp>
+#include <ostream>
+#include <fstream>
+#include <vector>
 
-/**
- * Show help.
- */
-void help()
+namespace po = boost::program_options;
+namespace chrono = std::chrono;
+using perf_clock = chrono::steady_clock;
+using us = chrono::microseconds;
+using json = nlohmann::json;
+
+struct EvaluationResults
 {
-    std::cout << "simulate – Simulate the evolution of a synteny.\n";
-    std::cout << "Arguments:\n\n";
-    std::cout << "seed (uint, default = 0)\nNumber used as a seed for the "
-        "pseudo-random number generator. If 0, uses a random seed provided by "
-        "the system, if available.\n\n";
-    std::cout << "length (uint, default = 5)\nLength of the root synteny "
-        "to evolve from.\n\n";
-    std::cout << "event_depth (uint, default = 5)\nMaximum depth of events"
-        "on a given branch of the generated tree, not counting segmental "
-        "losses.\n\n";
-    std::cout << "duplication_probability (double, default = 0.5)\n"
-        "Probability that a given internal node should be a duplication node."
-        "\n\n";
-    std::cout << "loss_probability (double, default = 0.2)\nProbability "
-        "that a segmental loss could occur below a given internal node.\n\n";
-    std::cout << "loss_length_rate (double, default = 0.5)\nRate "
-        "determining the length of lost segments.\n";
+    unsigned scoredif = 0;
+    long duration = 0;
+
+    bool needs_scoredif = false;
+    bool needs_duration = false;
+};
+
+template<typename PRNG>
+void evaluate(
+    EvaluationResults& results,
+    EvolutionParams<PRNG>& params)
+{
+    auto reference_tree = simulate_evolution(params);
+    auto reconciled_tree = reference_tree;
+    erase_tree(reconciled_tree, std::begin(reconciled_tree));
+
+    chrono::time_point<perf_clock> start;
+    chrono::time_point<perf_clock> end;
+
+    if (results.needs_duration)
+    {
+        start = perf_clock::now();
+    }
+
+    super_reconciliation(reconciled_tree);
+
+    if (results.needs_duration)
+    {
+        end = perf_clock::now();
+        results.duration = chrono::duration_cast<us, long>(end - start)
+            .count();
+    }
+
+    if (results.needs_scoredif)
+    {
+        auto ref_score = get_dl_score(reference_tree);
+        auto rec_score = get_dl_score(reconciled_tree);
+
+        if (ref_score < rec_score)
+        {
+            throw std::logic_error{
+                "Unexpected non-parcimonious reconciliation!"};
+        }
+
+        results.scoredif = ref_score - rec_score;
+    }
+}
+
+template<typename PRNG>
+json sample(
+    EvolutionParams<PRNG>& params,
+    unsigned sample_size,
+    bool needs_scoredif,
+    bool needs_duration)
+{
+    json results = {
+        {"params", {
+            {"synteny_size", params.base_synteny.size()},
+            {"event_depth", params.event_depth},
+            {"duplication_probability", params.duplication_probability},
+            {"loss_probability", params.loss_probability},
+            {"loss_length_rate", params.loss_length_rate}
+        }}
+    };
+
+    if (needs_scoredif)
+    {
+        results["scoredif"] = json::array();
+    }
+
+    if (needs_duration)
+    {
+        results["duration"] = json::array();
+    }
+
+    EvaluationResults sample_info;
+    sample_info.needs_scoredif = needs_scoredif;
+    sample_info.needs_duration = needs_duration;
+
+    for (unsigned i = 0; i < sample_size; ++i)
+    {
+        evaluate(sample_info, params);
+
+        if (needs_scoredif)
+        {
+            results["scoredif"].push_back(sample_info.scoredif);
+        }
+
+        if (needs_duration)
+        {
+            results["duration"].push_back(sample_info.duration);
+        }
+    }
+
+    return results;
+}
+
+struct Arguments
+{
+    std::string output;
+    std::vector<std::string> metrics;
+    unsigned sample_size;
+    unsigned long seed;
+    MultivaluedNumber<unsigned> synteny_size = 5;
+    MultivaluedNumber<unsigned> event_depth = 5;
+    MultivaluedNumber<double> duplication_probability = 0.5;
+    MultivaluedNumber<double> loss_probability = 0.5;
+    MultivaluedNumber<double> loss_length_rate = 0.5;
+};
+
+bool read_arguments(Arguments& result, int argc, const char* argv[])
+{
+    po::options_description root;
+
+    po::options_description req_group{"Required arguments"};
+
+    req_group.add_options()
+        ("output,o",
+         po::value(&result.output)
+            ->value_name("PATH")
+            ->required(),
+         "path in which to create the output file")
+
+        ("metrics,m",
+         po::value(&result.metrics)
+            ->value_name("METRIC")
+            ->required(),
+         "the metrics to evaluate, either 'scoredif' or 'duration'")
+    ;
+
+    root.add(req_group);
+    po::options_description gen_opt_group{"General options"};
+
+    gen_opt_group.add_options()
+        ("help,h", "show this help message")
+
+        ("sample-size,S",
+         po::value(&result.sample_size)
+            ->value_name("SIZE")
+            ->default_value(1),
+         "number of samples to use for each set of parameters")
+
+        ("seed",
+         po::value(&result.seed)
+            ->value_name("NUMBER")
+            ->default_value(0),
+         "seed to use for pseudo-random number generation. If 0, will "
+         "use a system-provided random number")
+    ;
+
+    root.add(gen_opt_group);
+    po::options_description sim_opt_group{"Simulation parameters (accept "
+        "either a single value, a set of values '{1, 2, 3}'\nor a range "
+        "of values '[1:100]' with an optional step argument '[1:100:10]')"};
+
+    sim_opt_group.add_options()
+        ("synteny-size,s",
+         po::value(&result.synteny_size)
+            ->value_name("SIZE")
+            ->default_value(5),
+         "size of the ancestral synteny to evolve from")
+
+        ("depth,d",
+         po::value(&result.event_depth)
+            ->value_name("SIZE")
+            ->default_value(5),
+         "maximum depth of events on a branch, not counting losses")
+
+        ("p-dup,D",
+         po::value(&result.duplication_probability)
+            ->value_name("PROB")
+            ->default_value(0.5),
+         "probability for any given internal node to be a duplication")
+
+        ("p-loss,L",
+         po::value(&result.loss_probability)
+            ->value_name("PROB")
+            ->default_value(0.5),
+         "probability for a loss under any given speciation node")
+
+        ("p-length,R",
+         po::value(&result.loss_length_rate)
+            ->value_name("PROB")
+            ->default_value(0.5),
+         "parameter defining the geometric distribution of loss "
+         "segments’ lengths")
+    ;
+    root.add(sim_opt_group);
+
+    po::positional_options_description pos;
+    pos.add("output", 1);
+
+    po::variables_map values;
+    po::store(
+        po::command_line_parser(argc, argv)
+            .options(root)
+            .positional(pos)
+            .run(),
+        values);
+
+    if (values.count("help"))
+    {
+        std::cout << "Usage: " << argv[0] << " output -m METRIC [options...]\n";
+        std::cout << "\nEvaluate metrics of a sample of evolutions simulated"
+            " for each\ngiven set of parameters.\n" << root;
+        return false;
+    }
+
+    po::notify(values);
+    return true;
 }
 
 int main(int argc, const char* argv[])
 {
-    // Read program arguments into a vector of strings
-    std::vector<std::string> args;
-    args.reserve(argc - 1);
+    using namespace std::string_literals;
+    Arguments args;
 
-    std::transform(
-        argv + 1, argv + argc,
-        back_inserter(args),
-        [](const char* arg) {
-            return std::string(arg);
-        });
-
-    if (std::find(begin(args), end(args), "--help") != std::end(args))
+    if (!read_arguments(args, argc, argv))
     {
-        help();
         return EXIT_SUCCESS;
     }
 
-    // Fill the evolution simulation parameters from arguments
-    unsigned long synteny_length = 5;
-    unsigned int seed = 0;
+    std::ofstream output(args.output);
+    bool needs_scoredif = contains(args.metrics, "scoredif"s);
+    bool needs_duration = contains(args.metrics, "duration"s);
 
-    std::mt19937 prng;
-    EvolutionParams<decltype(prng)> params;
-    params.random_generator = &prng;
-
-    switch (args.size())
-    {
-    case 6:
-        params.loss_length_rate = stod(args[5]);
-        // fallthrough
-
-    case 5:
-        params.loss_probability = stod(args[4]);
-        // fallthrough
-
-    case 4:
-        params.duplication_probability = stod(args[3]);
-        // fallthrough
-
-    case 3:
-        params.event_depth = stoul(args[2]);
-        // fallthrough
-
-    case 2:
-        synteny_length = stoul(args[1]);
-        // fallthrough
-
-    case 1:
-        seed = stoul(args[0]);
-        break;
-    };
+    json result = json::array();
+    unsigned long seed = args.seed;
 
     if (seed == 0)
     {
@@ -91,20 +253,34 @@ int main(int argc, const char* argv[])
         seed = rd();
     }
 
-    std::cerr << "Seed: " << seed << "\n";
-    prng.seed(seed);
+    std::mt19937 prng{seed};
+    EvolutionParams<std::mt19937> params;
+    params.random_generator = &prng;
 
-    params.base_synteny = Synteny::generateDummy(synteny_length);
+    for (auto synteny_size : args.synteny_size)
+    {
+        params.base_synteny = Synteny::generateDummy(synteny_size);
+    for (auto event_depth : args.event_depth)
+    {
+        params.event_depth = event_depth;
+    for (auto duplication_probability : args.duplication_probability)
+    {
+        params.duplication_probability = duplication_probability;
+    for (auto loss_probability : args.loss_probability)
+    {
+        params.loss_probability = loss_probability;
+    for (auto loss_length_rate : args.loss_length_rate)
+    {
+        params.loss_length_rate = loss_length_rate;
+        result.push_back(sample(
+            params, args.sample_size,
+            needs_scoredif, needs_duration));
+    }
+    }
+    }
+    }
+    }
 
-    auto full_tree = simulate_evolution(params);
-    auto erased_tree = full_tree;
-    erase_tree(erased_tree, std::begin(erased_tree));
-
-    auto out_full_tree = tree_cast<Event, TaggedNode>(full_tree);
-    auto out_erased_tree = tree_cast<Event, TaggedNode>(erased_tree);
-
-    std::cerr << "Full tree:\n";
-    std::cout << stringify_nhx_tree(out_full_tree) << "\n";
-    std::cerr << "\nTree with erased information:\n";
-    std::cout << stringify_nhx_tree(out_erased_tree) << "\n";
+    output << result;
+    return EXIT_SUCCESS;
 }
