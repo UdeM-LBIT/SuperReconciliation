@@ -198,18 +198,14 @@ namespace detail
             root.type = type;
             ::tree<Event> result{root};
 
-            ::tree<Event> child_left;
-            ::tree<Event> child_right;
+            Synteny synteny_left = base;
+            Synteny synteny_right = base;
 
-            switch (type)
+            // For segmental duplications, either one of the children
+            // has a synteny that is a segment of the parent one
+            // (this segment may be the whole synteny)
+            if (type == Event::Type::Duplication)
             {
-            case Event::Type::Duplication:
-            {
-                // Segmental duplication: either one of the children
-                // has a synteny that is a segment of the parent one
-                Synteny synteny_left = base;
-                Synteny synteny_right = base;
-
                 if (is_left_child(prng))
                 {
                     synteny_left = get_random_segment(
@@ -220,37 +216,19 @@ namespace detail
                     synteny_right = get_random_segment(
                         prng, synteny_right, loss_leng_rate);
                 }
-
-                child_left = simulate_evolution(
-                    prng, synteny_left, depth - 1,
-                    dup_prob, loss_prob, loss_leng_rate);
-
-                child_right = simulate_evolution(
-                    prng, synteny_right, depth - 1,
-                    dup_prob, loss_prob, loss_leng_rate);
-                break;
             }
 
-            case Event::Type::Speciation:
-                // Speciation: losses are decided at random and can be cascaded.
-                // However, contrary to segmental duplications, any loss causes
-                // the creation of a loss node
-                child_left = simulate_losses(
-                    prng, base, depth - 1,
-                    dup_prob, loss_prob, loss_leng_rate);
+            // Decide of random losses that can be cascaded
+            auto child_left = simulate_losses(
+                prng, synteny_left, depth - 1,
+                dup_prob, loss_prob, loss_leng_rate);
 
-                child_right = simulate_losses(
-                    prng, base, depth - 1,
-                    dup_prob, loss_prob, loss_leng_rate);
-                break;
-
-            default:
-                break;
-            }
+            auto child_right = simulate_losses(
+                prng, synteny_right, depth - 1,
+                dup_prob, loss_prob, loss_leng_rate);
 
             result.append_child(result.begin(), child_left.begin());
             result.append_child(result.begin(), child_right.begin());
-
             return result;
         }
     }
