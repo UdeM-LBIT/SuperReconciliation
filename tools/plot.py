@@ -34,21 +34,15 @@ parser.add_argument('--fit-exp', action='store_true',
 args = parser.parse_args()
 
 xlabels = {
-    'synteny_size': 'Number of gene families in the ancestral synteny',
-    'event_depth': 'Depth of the simulated tree'}
+    'synteny_size': 'Size of the ancestral synteny',
+    'event_depth': 'Depth of the input tree'}
 
 ylabels = {
-    'scoredif': 'DL-score difference from reference to reconciled tree',
-    'duration': 'Time to compute reconciliation (seconds)'}
-
-# Plot configuration
-plt.rc('text', usetex=True)
+    'dlscore': r'\emph{DL-score}',
+    'duration': r'Time to compute (s)'}
 
 # Load data from file
 with open(args.input, 'r') as in_file:
-    plt.xlabel(xlabels[args.x])
-    plt.ylabel(ylabels[args.y])
-
     data = json.load(in_file)
     positions = []
     values = []
@@ -63,7 +57,14 @@ with open(args.input, 'r') as in_file:
 
         values.append(value_normalized)
 
-# Fit an polynomial function to the average values
+plt.rc('font', family='serif')
+plt.rc('text', usetex=True)
+plt.rc('figure', autolayout=True)
+plt.figure(figsize=(3.75, 2.6))
+plt.xlabel(xlabels[args.x])
+plt.ylabel(ylabels[args.y])
+
+# Fit a polynomial function to the average values
 avg_values = list(map(np.average, values))
 
 if args.fit_poly > 0:
@@ -76,7 +77,7 @@ if args.fit_poly > 0:
     plt.plot(
         x, y,
         linestyle='dashed', linewidth=1,
-        label=r'Best fit degree-{} polynomial'.format(args.fit_poly))
+        label=r'Best-fit degree-{} polynomial'.format(args.fit_poly))
     plt.legend()
 
 # Fit a logarithmic function to the average values
@@ -90,7 +91,7 @@ if args.fit_log:
     plt.plot(
         x, y,
         linestyle='dashed', linewidth=1,
-        label=r'Best fit logarithm')
+        label=r'Best-fit logarithm')
     plt.legend()
 
 # Fit an exponential function to the average values
@@ -104,7 +105,7 @@ if args.fit_exp:
     plt.plot(
         x, y,
         linestyle='dashed', linewidth=1,
-        label=r'Best fit exponential')
+        label=r'Best-fit exponential')
     plt.legend()
 
 # Enable log scales
