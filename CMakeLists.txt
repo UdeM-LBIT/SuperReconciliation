@@ -40,6 +40,12 @@ target_link_libraries(simulate common)
 target_include_directories(simulate PUBLIC lib)
 target_include_directories(simulate PUBLIC ${Boost_INCLUDE_DIR})
 
+# `evaluate` executable
+add_executable(evaluate src/evaluate.cpp)
+target_link_libraries(evaluate common)
+target_include_directories(evaluate PUBLIC lib)
+target_include_directories(evaluate PUBLIC ${Boost_INCLUDE_DIR})
+
 # `erase` executable
 add_executable(erase src/erase.cpp)
 target_link_libraries(erase common)
