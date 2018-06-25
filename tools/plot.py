@@ -77,7 +77,7 @@ if args.fit_poly > 0:
     plt.plot(
         x, y,
         linestyle='dashed', linewidth=1,
-        label=r'Best-fit degree-{} polynomial'.format(args.fit_poly))
+        label=r'Best-fit {}th-degree polynomial'.format(args.fit_poly))
     plt.legend()
 
 # Fit a logarithmic function to the average values

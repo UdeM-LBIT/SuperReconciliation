@@ -1,11 +1,13 @@
 #!/bin/bash
 
-./plot.py output/by-length.json \
-    synteny_size dlscore \
-    output/simulation-score-by-length.pdf
-./plot.py output/by-length.json \
-    synteny_size dlscore \
-    output/simulation-score-by-length.pgf
+./plot.py output/by-depth.json \
+    event_depth duration \
+    output/simulation-time-by-depth.pdf \
+    --fit-poly=4
+./plot.py output/by-depth.json \
+    event_depth duration \
+    output/simulation-time-by-depth.pgf \
+    --fit-poly=4
 
 ./plot.py output/by-length.json \
     synteny_size duration \
