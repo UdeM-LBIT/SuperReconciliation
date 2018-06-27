@@ -13,12 +13,12 @@ std::string event_to_graphviz(const Event& event, Synteny parent)
 
     switch (event.type)
     {
+    case Event::Type::Loss:
+        result += "fontcolor=\"red\", ";
+        // fall-through
+
     case Event::Type::None:
         result += "shape=\"none\", ";
-        break;
-
-    case Event::Type::Loss:
-        result += "shape=\"none\", fontcolor=\"red\", ";
         break;
 
     case Event::Type::Duplication:
@@ -34,7 +34,10 @@ std::string event_to_graphviz(const Event& event, Synteny parent)
 
     if (event.type == Event::Type::Loss)
     {
-        result += parent.difference(event.synteny);
+        if (!event.synteny.empty())
+        {
+            result += parent.difference(event.synteny);
+        }
     }
     else
     {
@@ -57,9 +60,14 @@ std::string event_subtree_to_graphviz(
         result += "    "
             + std::to_string(reinterpret_cast<unsigned long long int>(&*root))
             + " -- "
-            + std::to_string(reinterpret_cast<unsigned long long int>(&*it))
-            + ";\n";
-        result += event_subtree_to_graphviz(tree, it);
+            + std::to_string(reinterpret_cast<unsigned long long int>(&*it));
+
+        if (it->type == Event::Type::Loss && it->synteny.empty())
+        {
+            result += " [style=dashed]";
+        }
+
+        result += ";\n" + event_subtree_to_graphviz(tree, it);
     }
 
     return result;
