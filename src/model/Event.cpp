@@ -38,6 +38,12 @@ Event::Event(const TaggedNode& tagnode)
             }
         }
     }
+
+    // An empty leaf node is actually a full loss node
+    if (this->type == Type::None && this->synteny.empty())
+    {
+        this->type = Type::Loss;
+    }
 }
 
 Event::operator TaggedNode() const
