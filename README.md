@@ -131,7 +131,7 @@ or a range of values '[1:100]' with an optional step argument '[1:100:10]'):
 
 Generate a visualization of a synteny tree. Takes a synteny tree on standard input and outputs it in a Graphviz-compatible format on standard output. If you pipe the output to the `dot` utility, you can view the tree in a variety of formats such as PNG or PDF.
 
-### `tests`
+#### `tests`
 
 Run unit tests.
 
