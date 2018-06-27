@@ -140,8 +140,9 @@ void super_reconciliation(tree<Event>& tree)
     {
         CandidateMapping candidates;
         bool is_consistent = false;
+        auto children_count = tree.number_of_children(it);
 
-        if (tree.number_of_children(it) == 0)
+        if (children_count == 0)
         {
             // For leaves, the only possible candidate is the one that is
             // already affected: its cost is 0. We affect to all other
@@ -161,11 +162,8 @@ void super_reconciliation(tree<Event>& tree)
                 candidates.emplace(candidate, info);
             }
         }
-        else if (tree.number_of_children(it) == 2)
+        else if (children_count == 2)
         {
-            Event& child_left = *tree.child(it, 0);
-            Event& child_right = *tree.child(it, 1);
-
             for (const Synteny& candidate : possibilities)
             {
                 // For each candidate, evaluate the possible candidates that
@@ -174,68 +172,69 @@ void super_reconciliation(tree<Event>& tree)
                 // postfix order
                 auto sub_possibilities = candidate.generateSubsequences();
 
-                // Search for the syntenies that have the least total cost and
-                // for the syntenies that have the least partial (substring)
-                // cost for each child
-                auto best_total_left_cost = Cost::positiveInfinity();
-                Synteny best_total_left_synteny;
+                std::vector<Cost> best_total_costs, best_partial_costs;
+                std::vector<Synteny> best_total_synts, best_partial_synts;
 
-                auto best_partial_left_cost = Cost::positiveInfinity();
-                Synteny best_partial_left_synteny;
+                best_total_costs.reserve(children_count);
+                best_partial_costs.reserve(children_count);
+                best_total_synts.reserve(children_count);
+                best_partial_costs.reserve(children_count);
 
-                auto best_total_right_cost = Cost::positiveInfinity();
-                Synteny best_total_right_synteny;
-
-                auto best_partial_right_cost = Cost::positiveInfinity();
-                Synteny best_partial_right_synteny;
-
-                for (const Synteny& sub_candidate : sub_possibilities)
+                for (auto child = tree.begin(it);
+                     child != tree.end(it);
+                     ++child)
                 {
-                    auto total_dist = candidate.distanceTo(sub_candidate);
-                    auto partial_dist = candidate.distanceTo(sub_candidate, true);
+                    Cost best_total_cost, best_partial_cost;
+                    Synteny best_total_synt, best_partial_synt;
 
-                    auto total_left_cost = total_dist + candidates_per_node
-                        .at(&child_left).at(sub_candidate).cost;
+                    best_total_cost = best_partial_cost
+                        = Cost::positiveInfinity();
 
-                    if (total_left_cost < best_total_left_cost)
+                    // Search for the syntenies that have the least total cost
+                    // and for the ones that have the least partial cost
+                    for (const Synteny& sub_candidate : sub_possibilities)
                     {
-                        best_total_left_cost = total_left_cost;
-                        best_total_left_synteny = sub_candidate;
+                        // The distance to a child loss node is always zero,
+                        // because it encodes a loss **from** this
+                        // node’s synteny
+                        auto total_dist = child->type != Event::Type::Loss
+                            ? candidate.distanceTo(sub_candidate) : 0;
+                        auto partial_dist = child->type != Event::Type::Loss
+                            ? candidate.distanceTo(sub_candidate, true) : 0;
+
+                        auto total_cost = total_dist + candidates_per_node
+                            .at(&*child).at(sub_candidate).cost;
+
+                        if (total_cost < best_total_cost)
+                        {
+                            best_total_cost = total_cost;
+                            best_total_synt = sub_candidate;
+                        }
+
+                        auto partial_cost = partial_dist + candidates_per_node
+                            .at(&*child).at(sub_candidate).cost;
+
+                        if (partial_cost < best_partial_cost)
+                        {
+                            best_partial_cost = partial_cost;
+                            best_partial_synt = sub_candidate;
+                        }
                     }
 
-                    auto partial_left_cost = partial_dist + candidates_per_node
-                        .at(&child_left).at(sub_candidate).cost;
+                    best_total_costs.push_back(best_total_cost);
+                    best_partial_costs.push_back(best_partial_cost);
+                    best_total_synts.push_back(best_total_synt);
+                    best_partial_synts.push_back(best_partial_synt);
+                } // end loop on children
 
-                    if (partial_left_cost < best_partial_left_cost)
-                    {
-                        best_partial_left_cost = partial_left_cost;
-                        best_partial_left_synteny = sub_candidate;
-                    }
+                auto best_total_total
+                    = best_total_costs.at(0) + best_total_costs.at(1);
 
-                    auto total_right_cost = total_dist + candidates_per_node
-                        .at(&child_right).at(sub_candidate).cost;
-
-                    if (total_right_cost < best_total_right_cost)
-                    {
-                        best_total_right_cost = total_right_cost;
-                        best_total_right_synteny = sub_candidate;
-                    }
-
-                    auto partial_right_cost = partial_dist + candidates_per_node
-                        .at(&child_right).at(sub_candidate).cost;
-
-                    if (partial_right_cost < best_partial_right_cost)
-                    {
-                        best_partial_right_cost = partial_right_cost;
-                        best_partial_right_synteny = sub_candidate;
-                    }
-                }
-
-                auto best_total = best_total_left_cost + best_total_right_cost;
                 auto best_total_partial
-                    = best_total_left_cost + best_partial_right_cost;
+                    = best_total_costs.at(0) + best_partial_costs.at(1);
+
                 auto best_partial_total
-                    = best_partial_left_cost + best_total_right_cost;
+                    = best_partial_costs.at(0) + best_total_costs.at(1);
 
                 Candidate info;
 
@@ -247,9 +246,9 @@ void super_reconciliation(tree<Event>& tree)
                     // they are necessarily due to segmental losses following
                     // the speciation event and they have to be counted in the
                     // total cost
-                    info.cost = best_total;
-                    info.synteny_left = best_total_left_synteny;
-                    info.synteny_right = best_total_right_synteny;
+                    info.cost = best_total_total;
+                    info.synteny_left = best_total_synts.at(0);
+                    info.synteny_right = best_total_synts.at(1);
                     break;
 
                 case Event::Type::Duplication:
@@ -258,28 +257,28 @@ void super_reconciliation(tree<Event>& tree)
                     // We consider the most advantageous scenario between
                     // a full duplication, a segmental duplication on the left
                     // or a segmental duplication on the right
-                    if (best_total <= best_total_partial
-                        && best_total <= best_partial_total)
+                    if (best_total_total <= best_total_partial
+                        && best_total_total <= best_partial_total)
                     {
-                        info.cost = 1 + best_total;
-                        info.synteny_left = best_total_left_synteny;
-                        info.synteny_right = best_total_right_synteny;
+                        info.cost = 1 + best_total_total;
+                        info.synteny_left = best_total_synts.at(0);
+                        info.synteny_right = best_total_synts.at(1);
                     }
-                    else if (best_total_partial <= best_total
+                    else if (best_total_partial <= best_total_total
                         && best_total_partial <= best_partial_total)
                     {
                         info.cost = 1 + best_total_partial;
-                        info.synteny_left = best_total_left_synteny;
-                        info.synteny_right = best_partial_right_synteny;
+                        info.synteny_left = best_total_synts.at(0);
+                        info.synteny_right = best_partial_synts.at(1);
                         info.partial_right = true;
                     }
-                    else if (best_partial_total <= best_total
+                    else if (best_partial_total <= best_total_total
                         && best_partial_total <= best_total_partial)
                     {
                         info.cost = 1 + best_partial_total;
-                        info.synteny_left = best_partial_left_synteny;
+                        info.synteny_left = best_partial_synts.at(0);
                         info.partial_left = true;
-                        info.synteny_right = best_total_right_synteny;
+                        info.synteny_right = best_total_synts.at(1);
                     }
                     break;
 
@@ -290,7 +289,7 @@ void super_reconciliation(tree<Event>& tree)
                         << it->type;
                     throw std::invalid_argument{message.str()};
                 }
-                }
+                } // end switch on node type
 
                 if (!info.cost.isInfinity())
                 {
