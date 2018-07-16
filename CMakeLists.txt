@@ -18,6 +18,7 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}
 add_library(common
     src/algo/erase.cpp
     src/algo/super_reconciliation.cpp
+    src/algo/unordered_super_reconciliation.cpp
     src/io/nhx_parser.cpp
     src/io/util.cpp
     src/model/Event.cpp
@@ -33,6 +34,12 @@ add_executable(super_reconciliation src/super_reconciliation.cpp)
 target_link_libraries(super_reconciliation common)
 target_include_directories(super_reconciliation PUBLIC lib)
 target_include_directories(super_reconciliation PUBLIC ${Boost_INCLUDE_DIR})
+
+# `unordered_super_reconciliation` executable
+add_executable(unordered_super_reconciliation src/unordered_super_reconciliation.cpp)
+target_link_libraries(unordered_super_reconciliation common)
+target_include_directories(unordered_super_reconciliation PUBLIC lib)
+target_include_directories(unordered_super_reconciliation PUBLIC ${Boost_INCLUDE_DIR})
 
 # `simulate` executable
 add_executable(simulate src/simulate.cpp)

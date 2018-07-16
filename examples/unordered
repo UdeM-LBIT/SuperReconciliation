@@ -1,0 +1,15 @@
+[An example of unordered super-reconciliation input.]
+
+(
+    (
+        (
+            "a b",
+            "a c"
+        )[&&NHX:event=speciation],
+        "e b c"
+    )[&&NHX:event=duplication],
+    (
+        "d e",
+        "c d"
+    )[&&NHX:event=speciation]
+)[&&NHX:event=speciation];
