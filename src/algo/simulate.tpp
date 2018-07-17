@@ -37,7 +37,7 @@ namespace detail
      *
      * @param prng Pseudo-random number generator to use.
      * @param base Original synteny.
-     * @param loss_leng_rate Parameter defining the geometric distribution
+     * @param offset_rate Parameter defining the geometric distribution
      * of the segment’s start and end points.
      * @return A random segment.
      */
@@ -63,6 +63,50 @@ namespace detail
         return Synteny{
             std::next(std::begin(base), start_offset),
             std::prev(std::end(base), end_offset)};
+    }
+
+    /**
+     * Randomly rearrange some pairs of gene families inside a synteny.
+     *
+     * @param prng Pseudo-random generator to use.
+     * @param base Original synteny.
+     * @param rearr_rate Parameter defining the geometric distribution of the
+     * number of rearranged pairs.
+     * @return Randomly rearranged synteny.
+     */
+    template<typename PRNG>
+    Synteny randomly_rearrange(PRNG& prng, Synteny base, double rearr_rate)
+    {
+        std::geometric_distribution<int> get_no_of_pairs{rearr_rate};
+        std::uniform_int_distribution<std::size_t> get_index{0, base.size() - 1};
+
+        if (base.size() <= 1)
+        {
+            // We need at least one pair to be able to rearrange
+            return base;
+        }
+
+        auto no_of_pairs = get_no_of_pairs(prng);
+
+        for (int i = 0; i < no_of_pairs; ++i)
+        {
+            using std::swap;
+            auto first = std::next(begin(base), get_index(prng));
+            auto second = std::next(begin(base), get_index(prng));
+
+            if (first != second)
+            {
+                swap(*first, *second);
+            }
+            else
+            {
+                // Do not try to swap an element with itself, and draw
+                // another pair of indices
+                --i;
+            }
+        }
+
+        return base;
     }
 
     /**
@@ -101,22 +145,18 @@ namespace detail
 
     /**
      * Simulate the evolution of a synteny and generate a tree recording the
-     * history of the simulated events.
-     *
-     * @param prng Pseudo-random number generator to use.
-     * @param base Root synteny to evolve from.
-     * @param depth Maximum depth of events on branch, not counting losses.
-     * @param dup_prob Probability for any given internal node to be
-     * a duplication.
-     * @param loss_prob Probability for a loss under any given speciation node.
-     * @param loss_leng_rate Parameter defining the geometric distribution
-     * of loss segments’ lengths.
-     * @return Simulated event tree.
+     * history of the simulated events. See parameter descriptions in the
+     * header file.
      */
     template<typename PRNG>
     ::tree<Event> simulate_evolution(
-        PRNG& prng, Synteny base, int depth,
-        double dup_prob, double loss_prob, double loss_leng_rate);
+        PRNG& prng,
+        Synteny base,
+        int depth,
+        double dup_prob,
+        double loss_prob,
+        double loss_leng_rate,
+        double rearr_rate);
 
     /**
      * Simulate a sequence of losses and create a tree of loss events
@@ -136,8 +176,13 @@ namespace detail
      */
     template<typename PRNG>
     ::tree<Event> simulate_losses(
-        PRNG& prng, Synteny base, int depth,
-        double dup_prob, double loss_prob, double loss_leng_rate)
+        PRNG& prng,
+        Synteny base,
+        int depth,
+        double dup_prob,
+        double loss_prob,
+        double loss_leng_rate,
+        double rearr_rate)
     {
         std::discrete_distribution<int> get_incur_loss{
             1 - loss_prob, loss_prob};
@@ -154,7 +199,7 @@ namespace detail
             {
                 auto child = simulate_losses(
                     prng, root.synteny, depth,
-                    dup_prob, loss_prob, loss_leng_rate);
+                    dup_prob, loss_prob, loss_leng_rate, rearr_rate);
 
                 result.append_child(result.begin(), child.begin());
             }
@@ -164,15 +209,25 @@ namespace detail
         else
         {
             return simulate_evolution(
-                prng, base, depth,
-                dup_prob, loss_prob, loss_leng_rate);
+                prng,
+                base,
+                depth,
+                dup_prob,
+                loss_prob,
+                loss_leng_rate,
+                rearr_rate);
         }
     }
 
     template<typename PRNG>
     ::tree<Event> simulate_evolution(
-        PRNG& prng, Synteny base, int depth,
-        double dup_prob, double loss_prob, double loss_leng_rate)
+        PRNG& prng,
+        Synteny base,
+        int depth,
+        double dup_prob,
+        double loss_prob,
+        double loss_leng_rate,
+        double rearr_rate)
     {
         std::discrete_distribution<int> get_event_type{
             0, dup_prob, 1 - dup_prob, 0};
@@ -218,14 +273,18 @@ namespace detail
                 }
             }
 
-            // Decide of random losses that can be cascaded
+            // Additionally, randomly introduce rearrangements
+            synteny_left = randomly_rearrange(prng, synteny_left, rearr_rate);
+            synteny_right = randomly_rearrange(prng, synteny_right, rearr_rate);
+
+            // Apply random losses, which can be cascaded
             auto child_left = simulate_losses(
                 prng, synteny_left, depth - 1,
-                dup_prob, loss_prob, loss_leng_rate);
+                dup_prob, loss_prob, loss_leng_rate, rearr_rate);
 
             auto child_right = simulate_losses(
                 prng, synteny_right, depth - 1,
-                dup_prob, loss_prob, loss_leng_rate);
+                dup_prob, loss_prob, loss_leng_rate, rearr_rate);
 
             result.append_child(result.begin(), child_left.begin());
             result.append_child(result.begin(), child_right.begin());
@@ -239,7 +298,11 @@ template<typename PRNG>
 ::tree<Event> simulate_evolution(PRNG& prng, SimulationParams params)
 {
     return detail::simulate_evolution(
-        prng, params.base_synteny,
-        params.event_depth, params.duplication_probability,
-        params.loss_probability, params.loss_length_rate);
+        prng,
+        params.base_synteny,
+        params.event_depth,
+        params.duplication_probability,
+        params.loss_probability,
+        params.loss_length_rate,
+        params.rearrangement_rate);
 }

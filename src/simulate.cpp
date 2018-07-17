@@ -17,6 +17,7 @@ struct Arguments
     double duplication_probability;
     double loss_probability;
     double loss_length_rate;
+    double rearrangement_rate;
 
     std::string output_path;
 };
@@ -80,6 +81,14 @@ bool read_arguments(Arguments& result, int argc, const char* argv[])
             ->default_value(0.5),
          "parameter defining the geometric distribution of loss "
          "segments’ lengths")
+
+        ("p-rearr,S",
+         po::value(&result.rearrangement_rate)
+            ->value_name("PROB")
+            ->default_value(1),
+         "parameter defining the geometric distribution of the number "
+         "of gene pairs that can be rearranged from a node to one of its "
+         "children (eg., if 1, never rearranges any pair)")
     ;
     root.add(sim_opt_group);
 
@@ -120,6 +129,7 @@ int main(int argc, const char* argv[])
     params.duplication_probability = args.duplication_probability;
     params.loss_probability = args.loss_probability;
     params.loss_length_rate = args.loss_length_rate;
+    params.rearrangement_rate = args.rearrangement_rate;
 
     auto event_tree = simulate_evolution(prng, params);
     auto result_tree = tree_cast<Event, TaggedNode>(event_tree);

@@ -35,6 +35,12 @@ struct SimulationParams
      * Parameter defining the geometric distribution of loss segments’ lengths.
      */
     double loss_length_rate = 0.5;
+
+    /**
+     * Parameter defining the geometric distribution of the number of gene
+     * pairs that can be rearranged from a node to one of its children.
+     */
+    double rearrangement_rate = 1;
 };
 
 bool operator==(const SimulationParams&, const SimulationParams&);
