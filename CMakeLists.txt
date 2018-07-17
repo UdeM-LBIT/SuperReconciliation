@@ -29,17 +29,11 @@ target_link_libraries(common PUBLIC ${Boost_LIBRARIES})
 target_include_directories(common PUBLIC lib)
 target_include_directories(common PUBLIC ${Boost_INCLUDE_DIR})
 
-# `super_reconciliation` executable
-add_executable(super_reconciliation src/super_reconciliation.cpp)
-target_link_libraries(super_reconciliation common)
-target_include_directories(super_reconciliation PUBLIC lib)
-target_include_directories(super_reconciliation PUBLIC ${Boost_INCLUDE_DIR})
-
-# `unordered_super_reconciliation` executable
-add_executable(unordered_super_reconciliation src/unordered_super_reconciliation.cpp)
-target_link_libraries(unordered_super_reconciliation common)
-target_include_directories(unordered_super_reconciliation PUBLIC lib)
-target_include_directories(unordered_super_reconciliation PUBLIC ${Boost_INCLUDE_DIR})
+# `reconcile` executable
+add_executable(reconcile src/reconcile.cpp)
+target_link_libraries(reconcile common)
+target_include_directories(reconcile PUBLIC lib)
+target_include_directories(reconcile PUBLIC ${Boost_INCLUDE_DIR})
 
 # `simulate` executable
 add_executable(simulate src/simulate.cpp)

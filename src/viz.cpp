@@ -3,9 +3,72 @@
 #include "util/tree.hpp"
 #include "model/Synteny.hpp"
 #include "model/Event.hpp"
+#include <boost/program_options.hpp>
 #include <cstdlib>
 #include <iostream>
 #include <sstream>
+
+namespace po = boost::program_options;
+
+/**
+ * All arguments that can be passed to the program.
+ * See below for a description of each argument.
+ */
+struct Arguments
+{
+    std::string input_path;
+    std::string output_path;
+};
+
+/**
+ * Read arguments passed to the program and produce the
+ * help message if requested by the user.
+ *
+ * @param result Filled with arguments passed to the program or
+ * appropriate default values.
+ * @param argc Number of arguments in argv.
+ * @param argv Tokenized list of arguments passed to the program.
+ * @return True if the program may continue, or false if it has
+ * to be stopped.
+ */
+bool read_arguments(Arguments& result, int argc, const char* argv[])
+{
+    po::options_description root{"General options"};
+    root.add_options()
+        ("help,h", "show this help message")
+        ("input,I",
+         po::value(&result.input_path)
+            ->value_name("PATH")
+            ->default_value("-"),
+         "path of the file from which to read the input tree, or '-' to "
+            "read it from standard input")
+        ("output,o",
+         po::value(&result.output_path)
+            ->value_name("PATH")
+            ->default_value("-"),
+         "path of the file in which the output should be stored, or '-' "
+            "to store it in standard output")
+    ;
+
+    po::variables_map values;
+    po::store(
+        po::command_line_parser(argc, argv)
+            .options(root)
+            .run(),
+        values);
+
+    if (values.count("help"))
+    {
+        std::cout << "Usage: " << argv[0] << " [options...]\n";
+        std::cout << "\nCreate a Graphviz-compatible representation of a "
+            "tree.\n";
+        std::cout << root;
+        return false;
+    }
+
+    po::notify(values);
+    return true;
+}
 
 std::string event_to_graphviz(const Event& event, Synteny parent)
 {
@@ -107,22 +170,26 @@ std::string event_tree_to_graphviz(const tree<Event>& tree)
     return result;
 }
 
-int main()
+int main(int argc, const char* argv[])
 {
-    if (is_interactive())
+    Arguments args;
+
+    if (!read_arguments(args, argc, argv))
     {
-        std::cerr << "Input the tree to be visualized and "
-            "finish with Ctrl-D:\n";
+        return EXIT_SUCCESS;
     }
 
-    std::ostringstream nhx_tree;
-    nhx_tree << std::cin.rdbuf();
+    auto input_tree = parse_nhx_tree(read_all_from(
+        args.input_path,
+        "Input the tree to be converted to a Graphviz representation, "
+            "and finish with Ctrl-D:"));
 
-    auto input_tree = parse_nhx_tree(nhx_tree.str());
     auto event_tree = tree_cast<TaggedNode, Event>(input_tree);
 
-    std::cerr << "Tree in Graphviz format (can be piped into `dot`):\n";
-    std::cout << event_tree_to_graphviz(event_tree);
+    write_all_to(
+        args.output_path,
+        event_tree_to_graphviz(event_tree),
+        "Tree in Graphviz format (can be piped into `dot`):");
 
     return EXIT_SUCCESS;
 }

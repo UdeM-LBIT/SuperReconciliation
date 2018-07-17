@@ -1,12 +1,13 @@
 #include "algo/simulate.hpp"
 #include "util/tree.hpp"
+#include "io/util.hpp"
 #include <boost/program_options.hpp>
 #include <iostream>
 
 namespace po = boost::program_options;
 
 /**
- * All arguments that can be passed to the simulation program.
+ * All arguments that can be passed to the program.
  * See below for a description of each argument.
  */
 struct Arguments
@@ -16,6 +17,8 @@ struct Arguments
     double duplication_probability;
     double loss_probability;
     double loss_length_rate;
+
+    std::string output_path;
 };
 
 /**
@@ -36,6 +39,12 @@ bool read_arguments(Arguments& result, int argc, const char* argv[])
     po::options_description gen_opt_group{"General options"};
     gen_opt_group.add_options()
         ("help,h", "show this help message")
+        ("output,o",
+         po::value(&result.output_path)
+            ->value_name("PATH")
+            ->default_value("-"),
+         "path of the file in which the simulated tree should be stored, "
+            "or '-' to store it in standard output")
     ;
     root.add(gen_opt_group);
 
@@ -83,7 +92,7 @@ bool read_arguments(Arguments& result, int argc, const char* argv[])
 
     if (values.count("help"))
     {
-        std::cout << "Usage: " << argv[0] << " [-h] [options...]\n";
+        std::cout << "Usage: " << argv[0] << " [options...]\n";
         std::cout << "\nSimulate the evolution of a ficticious synteny.\n"
             << root;
         return false;
@@ -113,9 +122,12 @@ int main(int argc, const char* argv[])
     params.loss_length_rate = args.loss_length_rate;
 
     auto event_tree = simulate_evolution(prng, params);
-    auto out_tree = tree_cast<Event, TaggedNode>(event_tree);
+    auto result_tree = tree_cast<Event, TaggedNode>(event_tree);
 
-    std::cerr << "Simulated evolution tree:\n";
-    std::cout << stringify_nhx_tree(out_tree);
+    write_all_to(
+        args.output_path,
+        stringify_nhx_tree(result_tree),
+        "Simulated evolution tree:");
+
     return EXIT_SUCCESS;
 }

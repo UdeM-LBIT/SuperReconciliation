@@ -1,3 +1,5 @@
+<!-- vim: set spelllang=en : -->
+
 # SuperReconciliation
 
 Implementation of the Super-Reconciliation model for reconciling a set of trees accounting for segmental duplications and losses.
@@ -55,33 +57,13 @@ For example, the following NHX string represents one of the erased synteny trees
 
 ### Programs
 
-#### `super_reconciliation`
+#### `reconcile`
 
 This is the main program. It takes an erased supertree on standard input and outputs the inferred tree based on the Super-Reconciliation method. This implements the main algorithm of the paper.
 
 #### `simulate`
 
 Randomly simulate an evolutionary history based on a ficticious ancestral synteny of given length, and outputs a fully-labeled tree of this history.
-
-```
-Usage: ./simulate [-h] [options...]
-
-Simulate the evolution of a ficticious synteny.
-
-General options:
-  -h [ --help ]                    show this help message
-
-Simulation parameters:
-  -s [ --synteny-size ] SIZE (=5)  size of the ancestral synteny to evolve from
-  -d [ --depth ] SIZE (=5)         maximum depth of events on a branch, not
-                                   counting losses
-  -D [ --p-dup ] PROB (=0.5)       probability for any given internal node to
-                                   be a duplication
-  -L [ --p-loss ] PROB (=0.5)      probability for a loss under any given
-                                   speciation node
-  -R [ --p-length ] PROB (=0.5)    parameter defining the geometric
-                                   distribution of loss segments’ lengths
-```
 
 #### `erase`
 
@@ -93,39 +75,6 @@ Create a sample of simulated evolutions, and, for each reference tree, erase inf
 
 * `dlscore`: difference between the reference tree’s duplication-loss count and the reconciled tree’s duplication-loss count;
 * `duration`: measure the time required to compute the Super-Reconciliation.
-
-```
-Usage: ./evaluate [-h] output -m METRIC [options...]
-
-Evaluate metrics of a sample of evolutions simulated for each
-given set of parameters.
-
-Required arguments:
-  -o [ --output ] PATH             path in which to create the output file
-  -m [ --metrics ] METRIC          the metrics to evaluate, either 'dlscore' or
-                                   'duration'
-
-General options:
-  -h [ --help ]                    show this help message
-  -S [ --sample-size ] SIZE (=1)   number of samples to take for each set of
-                                   parameters
-  -j [ --jobs ] JOBS (=0)          number of threads to use for computing. If
-                                   0, automatically evaluate the best amount of
-                                   threads based on the resources of the
-                                   machine. Set to 1 to disable multithreading
-
-Simulation parameters (accept either a single value, a set of values '{1, 2, 3}'
-or a range of values '[1:100]' with an optional step argument '[1:100:10]'):
-  -s [ --synteny-size ] SIZE (=5)  size of the ancestral synteny to evolve from
-  -d [ --depth ] SIZE (=5)         maximum depth of events on a branch, not
-                                   counting losses
-  -D [ --p-dup ] PROB (=0.5)       probability for any given internal node to
-                                   be a duplication
-  -L [ --p-loss ] PROB (=0.5)      probability for a loss under any given
-                                   speciation node
-  -R [ --p-length ] PROB (=0.5)    parameter defining the geometric
-                                   distribution of loss segments’ lengths
-```
 
 #### `viz`
 
@@ -144,10 +93,10 @@ Simulate one evolutionary history and output three trees:
 * the reconciled version after applying the Super-Reconciliation method.
 
 ```sh
-./simulate | tee
-    >(./erase | tee
-        >(./viz | dot -Tpdf >! tree-erased.pdf)
-        >(./super_reconciliation | ./viz | dot -Tpdf >! tree-reconciled.pdf)
-    )
+./simulate | tee \
+    >(./erase | tee \
+        >(./viz | dot -Tpdf >! tree-erased.pdf) \
+        >(./reconcile | ./viz | dot -Tpdf >! tree-reconciled.pdf) \
+    ) \
     | ./viz | dot -Tpdf >! tree-reference.pdf
 ```

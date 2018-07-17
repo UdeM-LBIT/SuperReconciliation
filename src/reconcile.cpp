@@ -1,4 +1,5 @@
-#include "algo/erase.hpp"
+#include "algo/super_reconciliation.hpp"
+#include "algo/unordered_super_reconciliation.hpp"
 #include "io/nhx_parser.hpp"
 #include "io/util.hpp"
 #include "util/tree.hpp"
@@ -15,6 +16,7 @@ namespace po = boost::program_options;
  */
 struct Arguments
 {
+    bool is_unordered;
     std::string input_path;
     std::string output_path;
 };
@@ -35,6 +37,9 @@ bool read_arguments(Arguments& result, int argc, const char* argv[])
     po::options_description root{"General options"};
     root.add_options()
         ("help,h", "show this help message")
+        ("unordered,U",
+         po::bool_switch(&result.is_unordered),
+         "compute an unordered super-reconciliation")
         ("input,I",
          po::value(&result.input_path)
             ->value_name("PATH")
@@ -59,8 +64,7 @@ bool read_arguments(Arguments& result, int argc, const char* argv[])
     if (values.count("help"))
     {
         std::cout << "Usage: " << argv[0] << " [options...]\n";
-        std::cout << "\nErase information from a tree to make it suitable "
-            "for super-reconciliation.\n";
+        std::cout << "\nCompute a super-reconciliation of an input tree.\n";
         std::cout << root;
         return false;
     }
@@ -80,17 +84,26 @@ int main(int argc, const char* argv[])
 
     auto input_tree = parse_nhx_tree(read_all_from(
         args.input_path,
-        "Input the tree to be erased, "
+        "Input the tree to be reconciled "
             "and finish with Ctrl-D:"));
 
     auto event_tree = tree_cast<TaggedNode, Event>(input_tree);
-    erase_tree(event_tree, std::begin(event_tree));
+
+    if (args.is_unordered)
+    {
+        unordered_super_reconciliation(event_tree);
+    }
+    else
+    {
+        super_reconciliation(event_tree);
+    }
+
     auto result_tree = tree_cast<Event, TaggedNode>(event_tree);
 
     write_all_to(
         args.output_path,
         stringify_nhx_tree(result_tree),
-        "Erased tree (use `viz` to visualize):");
+        "Reconciled tree (use `viz` to visualize):");
 
     return EXIT_SUCCESS;
 }

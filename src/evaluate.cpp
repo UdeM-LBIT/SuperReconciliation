@@ -103,7 +103,7 @@ void evaluate(
 }
 
 /**
- * All arguments that can be passed to the simulation program.
+ * All arguments that can be passed to the program.
  * See below for a description of each argument.
  */
 struct Arguments
@@ -221,7 +221,7 @@ bool read_arguments(Arguments& result, int argc, const char* argv[])
 
     if (values.count("help"))
     {
-        std::cout << "Usage: " << argv[0] << " [-h] output -m METRIC [options...]\n";
+        std::cout << "Usage: " << argv[0] << " output -m METRIC [options...]\n";
         std::cout << "\nEvaluate metrics of a sample of evolutions simulated"
             " for each\ngiven set of parameters.\n" << root;
         return false;
