@@ -12,12 +12,14 @@ namespace po = boost::program_options;
  */
 struct Arguments
 {
-    unsigned synteny_size;
-    unsigned event_depth;
-    double duplication_probability;
-    double loss_probability;
-    double loss_length_rate;
-    double rearrangement_rate;
+    unsigned seed;
+    unsigned base_size;
+    unsigned depth;
+    double p_dup;
+    double p_dup_length;
+    double p_loss;
+    double p_loss_length;
+    double p_rearr;
 
     std::string output_path;
 };
@@ -51,44 +53,60 @@ bool read_arguments(Arguments& result, int argc, const char* argv[])
 
     po::options_description sim_opt_group{"Simulation parameters"};
     sim_opt_group.add_options()
-        ("synteny-size,s",
-         po::value(&result.synteny_size)
+        ("seed,S",
+         po::value(&result.seed)
+            ->value_name("SEED")
+            ->default_value(0),
+         "seed for the pseudo-random number generator. The special value 0 "
+         "instructs the program to grab a random seed from one of the "
+         "system’s entropy sources")
+
+        ("base-size,s",
+         po::value(&result.base_size)
             ->value_name("SIZE")
             ->default_value(5),
-         "size of the ancestral synteny to evolve from")
+         "number of genes in the ancestral synteny from which the "
+         "simulation will evolve")
 
-        ("depth,d",
-         po::value(&result.event_depth)
+        ("depth,H",
+         po::value(&result.depth)
             ->value_name("SIZE")
             ->default_value(5),
          "maximum depth of events on a branch, not counting losses")
 
-        ("p-dup,D",
-         po::value(&result.duplication_probability)
+        ("p-dup,d",
+         po::value(&result.p_dup)
             ->value_name("PROB")
             ->default_value(0.5),
          "probability for any given internal node to be a duplication")
 
-        ("p-loss,L",
-         po::value(&result.loss_probability)
+        ("p-dup-length,D",
+         po::value(&result.p_dup_length)
             ->value_name("PROB")
-            ->default_value(0.5),
+            ->default_value(0.3, "0.3"),
+         "parameter of the geometric distribution of the lengths of "
+         "segments in segmental duplications")
+
+        ("p-loss,l",
+         po::value(&result.p_loss)
+            ->value_name("PROB")
+            ->default_value(0.2),
          "probability for a loss under any given speciation node")
 
-        ("p-length,R",
-         po::value(&result.loss_length_rate)
+        ("p-loss-length,L",
+         po::value(&result.p_loss_length)
             ->value_name("PROB")
-            ->default_value(0.5),
-         "parameter defining the geometric distribution of loss "
-         "segments’ lengths")
+            ->default_value(0.7, "0.7"),
+         "parameter of the geometric distribution of the lengths of "
+         "segments in segmental losses")
 
-        ("p-rearr,S",
-         po::value(&result.rearrangement_rate)
+        ("p-rearr,R",
+         po::value(&result.p_rearr)
             ->value_name("PROB")
             ->default_value(1),
-         "parameter defining the geometric distribution of the number "
-         "of gene pairs that can be rearranged from a node to one of its "
-         "children (eg., if 1, never rearranges any pair)")
+         "parameter of the geometric distribution of the number of gene "
+         "pairs rearranged from a node to one of its children (for example "
+         ", if 1, no pair is ever rearranged)")
     ;
     root.add(sim_opt_group);
 
@@ -120,16 +138,23 @@ int main(int argc, const char* argv[])
         return EXIT_SUCCESS;
     }
 
-    std::random_device rd;
-    std::mt19937 prng{rd()};
+    unsigned seed = args.seed;
+
+    if (seed == 0)
+    {
+        seed = std::random_device()();
+    }
+
+    std::mt19937 prng{seed};
 
     SimulationParams params;
-    params.base_synteny = Synteny::generateDummy(args.synteny_size);
-    params.event_depth = args.event_depth;
-    params.duplication_probability = args.duplication_probability;
-    params.loss_probability = args.loss_probability;
-    params.loss_length_rate = args.loss_length_rate;
-    params.rearrangement_rate = args.rearrangement_rate;
+    params.base = Synteny::generateDummy(args.base_size);
+    params.depth = args.depth;
+    params.p_dup = args.p_dup;
+    params.p_dup_length = args.p_dup_length;
+    params.p_loss = args.p_loss;
+    params.p_loss_length = args.p_loss_length;
+    params.p_rearr = args.p_rearr;
 
     auto event_tree = simulate_evolution(prng, params);
     auto result_tree = tree_cast<Event, TaggedNode>(event_tree);

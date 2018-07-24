@@ -113,11 +113,13 @@ struct Arguments
     unsigned sample_size;
     unsigned jobs;
 
-    MultivaluedNumber<unsigned> synteny_size;
-    MultivaluedNumber<unsigned> event_depth;
-    MultivaluedNumber<double> duplication_probability;
-    MultivaluedNumber<double> loss_probability;
-    MultivaluedNumber<double> loss_length_rate;
+    MultivaluedNumber<unsigned> base_size;
+    MultivaluedNumber<unsigned> depth;
+    MultivaluedNumber<double> p_dup;
+    MultivaluedNumber<double> p_dup_length;
+    MultivaluedNumber<double> p_loss;
+    MultivaluedNumber<double> p_loss_length;
+    MultivaluedNumber<double> p_rearr;
 };
 
 /**
@@ -175,36 +177,52 @@ bool read_arguments(Arguments& result, int argc, const char* argv[])
         "either a single value, a set of values '{1, 2, 3}'\nor a range "
         "of values '[1:100]' with an optional step argument '[1:100:10]')"};
     sim_opt_group.add_options()
-        ("synteny-size,s",
-         po::value(&result.synteny_size)
+        ("base-size,s",
+         po::value(&result.base_size)
             ->value_name("SIZE")
             ->default_value(5),
-         "size of the ancestral synteny to evolve from")
+         "number of genes in the ancestral synteny from which the "
+         "simulation will evolve")
 
-        ("depth,d",
-         po::value(&result.event_depth)
+        ("depth,H",
+         po::value(&result.depth)
             ->value_name("SIZE")
             ->default_value(5),
          "maximum depth of events on a branch, not counting losses")
 
-        ("p-dup,D",
-         po::value(&result.duplication_probability)
+        ("p-dup,d",
+         po::value(&result.p_dup)
             ->value_name("PROB")
             ->default_value(0.5),
          "probability for any given internal node to be a duplication")
 
-        ("p-loss,L",
-         po::value(&result.loss_probability)
+        ("p-dup-length,D",
+         po::value(&result.p_dup_length)
             ->value_name("PROB")
-            ->default_value(0.5),
+            ->default_value(0.3, "0.3"),
+         "parameter of the geometric distribution of the lengths of "
+         "segments in segmental duplications")
+
+        ("p-loss,l",
+         po::value(&result.p_loss)
+            ->value_name("PROB")
+            ->default_value(0.2),
          "probability for a loss under any given speciation node")
 
-        ("p-length,R",
-         po::value(&result.loss_length_rate)
+        ("p-loss-length,L",
+         po::value(&result.p_loss_length)
             ->value_name("PROB")
-            ->default_value(0.5),
-         "parameter defining the geometric distribution of loss "
-         "segments’ lengths")
+            ->default_value(0.7, "0.7"),
+         "parameter of the geometric distribution of the lengths of "
+         "segments in segmental losses")
+
+        ("p-rearr,R",
+         po::value(&result.p_rearr)
+            ->value_name("PROB")
+            ->default_value(1),
+         "parameter of the geometric distribution of the number of gene "
+         "pairs rearranged from a node to one of its children (for example "
+         ", if 1, no pair is ever rearranged)")
     ;
     root.add(sim_opt_group);
 
@@ -310,11 +328,13 @@ int main(int argc, const char* argv[])
     // Track task progression
     unsigned long performed_tasks = 0;
     unsigned long total_tasks = args.sample_size
-        * args.synteny_size.size()
-        * args.event_depth.size()
-        * args.duplication_probability.size()
-        * args.loss_probability.size()
-        * args.loss_length_rate.size();
+        * args.base_size.size()
+        * args.depth.size()
+        * args.p_dup.size()
+        * args.p_dup_length.size()
+        * args.p_loss.size()
+        * args.p_loss_length.size()
+        * args.p_rearr.size();
 
     report_progress(performed_tasks, total_tasks);
 
@@ -325,40 +345,52 @@ int main(int argc, const char* argv[])
         shared(                                                                \
             results, find_params_index, performed_tasks)                       \
         default(none)                                                          \
-        collapse(6) schedule(dynamic)
+        collapse(8) schedule(dynamic)
     for (unsigned sample_id = 0; sample_id < args.sample_size; ++sample_id)
     {
     for (
-        auto synteny_size = args.synteny_size.begin();
-        synteny_size < args.synteny_size.end();
-        ++synteny_size)
+        auto base_size = args.base_size.begin();
+        base_size < args.base_size.end();
+        ++base_size)
     {
     for (
-        auto event_depth = args.event_depth.begin();
-        event_depth < args.event_depth.end();
-        ++event_depth)
+        auto depth = args.depth.begin();
+        depth < args.depth.end();
+        ++depth)
     {
     for (
-        auto duplication_prob = args.duplication_probability.begin();
-        duplication_prob < args.duplication_probability.end();
-        ++duplication_prob)
+        auto p_dup = args.p_dup.begin();
+        p_dup < args.p_dup.end();
+        ++p_dup)
     {
     for (
-        auto loss_prob = args.loss_probability.begin();
-        loss_prob < args.loss_probability.end();
-        ++loss_prob)
+        auto p_dup_length = args.p_dup_length.begin();
+        p_dup_length < args.p_dup_length.end();
+        ++p_dup_length)
     {
     for (
-        auto loss_length_rate = args.loss_length_rate.begin();
-        loss_length_rate < args.loss_length_rate.end();
-        ++loss_length_rate)
+        auto p_loss = args.p_loss.begin();
+        p_loss < args.p_loss.end();
+        ++p_loss)
+    {
+    for (
+        auto p_loss_length = args.p_loss_length.begin();
+        p_loss_length < args.p_loss_length.end();
+        ++p_loss_length)
+    {
+    for (
+        auto p_rearr = args.p_rearr.begin();
+        p_rearr < args.p_rearr.end();
+        ++p_rearr)
     {
         SimulationParams sample_params;
-        sample_params.base_synteny = Synteny::generateDummy(*synteny_size);
-        sample_params.event_depth = *event_depth;
-        sample_params.duplication_probability = *duplication_prob;
-        sample_params.loss_probability = *loss_prob;
-        sample_params.loss_length_rate = *loss_length_rate;
+        sample_params.base = Synteny::generateDummy(*base_size);
+        sample_params.depth = *depth;
+        sample_params.p_dup = *p_dup;
+        sample_params.p_dup_length = *p_dup_length;
+        sample_params.p_loss = *p_loss;
+        sample_params.p_loss_length = *p_loss_length;
+        sample_params.p_rearr = *p_rearr;
 
         EvaluationResults sample_info;
         sample_info.needs_dlscore = needs_dlscore;
@@ -375,11 +407,13 @@ int main(int argc, const char* argv[])
             {
                 json sample_result = {
                     {"params", {
-                        {"synteny_size", *synteny_size},
-                        {"event_depth", *event_depth},
-                        {"duplication_probability", *duplication_prob},
-                        {"loss_probability", *loss_prob},
-                        {"loss_length_rate", *loss_length_rate}
+                        {"base_size", *base_size},
+                        {"depth", *depth},
+                        {"p_dup", *p_dup},
+                        {"p_dup_length", *p_dup_length},
+                        {"p_loss", *p_loss},
+                        {"p_loss_length", *p_loss_length},
+                        {"p_rearr", *p_rearr}
                     }}
                 };
 
@@ -413,7 +447,7 @@ int main(int argc, const char* argv[])
             ++performed_tasks;
             report_progress(performed_tasks, total_tasks);
         }
-    }}}}}}
+    }}}}}}}}
 
     std::ofstream output(args.output);
     output << results;

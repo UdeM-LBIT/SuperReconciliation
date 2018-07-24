@@ -12,41 +12,42 @@
 struct SimulationParams
 {
     /**
-     * Root synteny to evolve from.
+     * Ancestral synteny from which the simulation will evolve.
      */
-    Synteny base_synteny;
+    Synteny base;
 
     /**
      * Maximum depth of events on a branch, not counting losses.
      */
-    int event_depth = 5;
+    int depth = 5;
 
     /**
      * Probability for any given internal node to be a duplication.
      */
-    double duplication_probability = 0.5;
+    double p_dup = 0.5;
 
     /**
-     * Probability for a loss under any given speciation node.
-     */
-    double loss_probability = 0.5;
-
-    /**
-     * Parameter defining the geometric distribution of loss segments’ lengths.
-     */
-    double loss_length_rate = 0.5;
-
-    /**
-     * Parameter defining the geometric distribution of duplication segments’
-     * lengths.
+     * Parameter of the geometric distribution of the lengths of segments
+     * in segmental duplications.
      */
     double p_dup_length = 0.3;
 
     /**
-     * Parameter defining the geometric distribution of the number of gene
-     * pairs that can be rearranged from a node to one of its children.
+     * Probability for a loss under any given speciation node.
      */
-    double rearrangement_rate = 1;
+    double p_loss = 0.2;
+
+    /**
+     * Parameter of the geometric distribution of the lengths of segments
+     * in segmental losses.
+     */
+    double p_loss_length = 0.7;
+
+    /**
+     * Parameter of the geometric distribution of the number of gene
+     * pairs rearranged from a node to one of its children.
+     */
+    double p_rearr = 1;
 };
 
 bool operator==(const SimulationParams&, const SimulationParams&);
