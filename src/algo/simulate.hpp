@@ -37,6 +37,12 @@ struct SimulationParams
     double loss_length_rate = 0.5;
 
     /**
+     * Parameter defining the geometric distribution of duplication segments’
+     * lengths.
+     */
+    double p_dup_length = 0.3;
+
+    /**
      * Parameter defining the geometric distribution of the number of gene
      * pairs that can be rearranged from a node to one of its children.
      */

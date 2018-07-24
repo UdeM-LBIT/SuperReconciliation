@@ -3,6 +3,8 @@
 #include <map>
 #include <tree.hh>
 
+namespace
+{
 /**
  * Make sure that, in an event tree, the distance in terms of losses between
  * a parent and one of its children is at most 1 for loss nodes and at most
@@ -21,7 +23,15 @@ void resolve_losses(
 {
     auto synteny_parent = parent->synteny;
     auto synteny_child = child->synteny;
-    auto distance = synteny_parent.distanceTo(synteny_child, substring);
+
+    // If the parent is a loss node, consider its synteny to be as if the loss
+    // had already occurred
+    if (parent->type == Event::Type::Loss)
+    {
+        synteny_parent.erase(
+            std::next(std::cbegin(synteny_parent), parent->segment.first),
+            std::next(std::cbegin(synteny_parent), parent->segment.second));
+    }
 
     // Edge case: if we happen to generate a internal node which has an empty
     // synteny, we must make sure that it does not have any child, because
@@ -33,19 +43,16 @@ void resolve_losses(
         return;
     }
 
-    // Only loss nodes are allowed to have at most a distance of one with their
-    // child syntenies. Other nodes must have exactly the same synteny as their
-    // children
-    if ((child->type == Event::Type::Loss && distance > 1)
-        || (child->type != Event::Type::Loss && distance > 0))
+    // If the distance between the parent and the child syntenies is at
+    // least one, loss nodes need to be introduced between them
+    auto losses = synteny_parent.reconcile(synteny_child, substring);
+
+    if (losses.size() >= 1)
     {
-        // If this condition fails for a node, introduce an intermediary loss
-        // node between the parent and its faulty child. Recursively resolve
-        // discrepancies so that, ultimately, the condition is fulfilled
         Event new_node;
         new_node.type = Event::Type::Loss;
-        new_node.synteny
-            = synteny_parent.reconcile(synteny_child, 1, substring).second;
+        new_node.synteny = synteny_parent;
+        new_node.segment = losses.front();
 
         auto new_child = tree.wrap(child, new_node);
         resolve_losses(tree, new_child, child, substring);
@@ -53,8 +60,35 @@ void resolve_losses(
     }
 }
 
-namespace
+Synteny::Segment find_duplicated_segment(
+    const Synteny& synteny_parent,
+    const Synteny& synteny_child)
 {
+    auto losses = synteny_parent.reconcile(
+        synteny_child, false,
+        ExtendedNumber<int>::positiveInfinity());
+
+    auto max = synteny_parent.size();
+    auto result = Synteny::Segment(0, max);
+
+    // We are interested in segments at the very start or end of the
+    // parent synteny. Those induce a reduction in the duplicated segment
+    for (const auto& loss : losses)
+    {
+        if (loss.first == 0)
+        {
+            result.first = loss.second;
+        }
+
+        if (loss.second == max)
+        {
+            result.second = loss.first;
+        }
+    }
+
+    return result;
+}
+
 unsigned get_dl_score_helper(tree<Event>& tree, ::tree<Event>::iterator root)
 {
     unsigned score = 0;
@@ -325,6 +359,20 @@ void super_reconciliation(tree<Event>& tree)
             auto child_left = tree.child(parent, 0);
             auto child_right = tree.child(parent, 1);
             auto info = candidates_per_node.at(&*parent).at(synteny_parent);
+
+            if (info.partial_left)
+            {
+                parent->segment = find_duplicated_segment(
+                    synteny_parent,
+                    info.synteny_left);
+            }
+
+            if (info.partial_right)
+            {
+                parent->segment = find_duplicated_segment(
+                    synteny_parent,
+                    info.synteny_right);
+            }
 
             child_left->synteny = info.synteny_left;
             resolve_losses(tree, parent, child_left, info.partial_left);

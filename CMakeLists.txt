@@ -63,6 +63,7 @@ target_include_directories(viz PUBLIC ${Boost_INCLUDE_DIR})
 add_executable(tests
     src/tests.cpp
     src/io/nhx_parser.test.cpp
+    src/model/Event.test.cpp
     src/model/Synteny.test.cpp
     src/util/ExtendedNumber.test.cpp
     src/util/MultivaluedNumber.test.cpp

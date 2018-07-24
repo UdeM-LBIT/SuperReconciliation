@@ -3,6 +3,7 @@
 
 #include "../io/nhx_parser.hpp"
 #include "Synteny.hpp"
+#include <utility>
 
 /**
  * An event that happened at a node in a synteny tree.
@@ -10,21 +11,54 @@
 struct Event
 {
     /**
-     * Kind of event.
+     * Types of events.
      */
     enum class Type
     {
-        None, //< No event: applicable for leaf nodes
-        Duplication, //< Segmental duplication event
-        Speciation, //< Speciation event
-        Loss, //< Segmental loss event
+        /**
+         * No event: it is a leaf node.
+         */
+        None,
+
+        /**
+         * Duplication event: the two child syntenies belong to the same
+         * species and were created following the duplication of a segment
+         * of the current synteny.
+         */
+        Duplication,
+
+        /**
+         * Speciation event: the two child syntenies belong to two different
+         * species that evolved from this common ancestor.
+         */
+        Speciation,
+
+        /**
+         * Loss event:
+         *
+         *  * if `synteny` is empty, represents a full loss of the
+         *    ancestral synteny;
+         *  * otherwise, a segment of the current synteny was lost in
+         *    the child.
+         */
+        Loss,
     };
 
-    // Type of event
+    /**
+     * Type of the current event.
+     */
     Type type = Type::None;
 
-    // Synteny associated with the node
+    /**
+     * Synteny of the current event.
+     */
     Synteny synteny;
+
+    /**
+     * Segment of the current synteny which is involved in this event.
+     * The meaning of this interval is specific to each event type.
+     */
+    Synteny::Segment segment;
 
     Event() = default;
 

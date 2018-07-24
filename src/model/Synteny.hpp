@@ -16,6 +16,12 @@ public:
     using std::list<Gene>::list;
 
     /**
+     * A segment in a synteny is a pair of indices (begin, end) such
+     * that the represented segment contains all genes in [begin, end).
+     */
+    using Segment = std::pair<std::size_t, std::size_t>;
+
+    /**
      * Generate a dummy synteny of given length, with incrementing
      * alphabetic gene families.
      *
@@ -59,9 +65,8 @@ public:
     int distanceTo(const Synteny&, bool = false) const;
 
     /**
-     * Compute a reconciled synteny that is closer to a target subsequence than
-     * the current one in terms of loss distance, but that contains no more than
-     * a given amount of losses.
+     * Find segments that are lost when turning this synteny into a target
+     * subsequence.
      *
      * @example base.reconcile(target, 2), where `base` and `target` are
      *
@@ -73,28 +78,19 @@ public:
      * obtained by erasing 2 segments from `base`.
      *
      * @param target Subsequence synteny to reconcile with.
-     * @param max Maximum number of segments that can be erased.
+     * @param max Maximum number of lost segments to report.
      * @param [substring=false] When set to true, does not count the initial
      * and terminal segmental losses. In this case, the result is the minimum
      * number of segmental losses required to turn a substring of this synteny
      * into `target`.
      *
-     * @return Number of erased segments to turn this synteny into the
-     * reconciled synteny, and the reconciled synteny, closer to the target
-     * than this synteny, but containing no more than `max` losses.
+     * @return A list of lost segments.
      */
-    std::pair<int, Synteny> reconcile(
-        const Synteny&, ExtendedNumber<int>, bool = false) const;
-
-    /**
-     * Create a string representation of the differences between this synteny
-     * and a target subsequence synteny.
-     *
-     * @param target Target subsequence synteny.
-     *
-     * @return String representation of the differences from this to `target`.
-     */
-    std::string difference(const Synteny&) const;
+    std::vector<Segment> reconcile(
+        const Synteny&,
+        bool = false,
+        ExtendedNumber<int> = 1
+    ) const;
 };
 
 /**

@@ -33,36 +33,39 @@ std::hash<SimulationParams>::operator()(const argument_type& a) const
 namespace detail
 {
     /**
-     * Get a random segment of a synteny.
+     * Randomly get a non-empty segment of a synteny.
      *
      * @param prng Pseudo-random number generator to use.
-     * @param base Original synteny.
-     * @param offset_rate Parameter defining the geometric distribution
-     * of the segment’s start and end points.
-     * @return A random segment.
+     * @param size Total size of the synteny.
+     * @param p_length Parameter defining the geometric distriubtion of
+     * a segment’s length.
+     * @return Interval of the randomly-drew segment.
      */
     template<typename PRNG>
-    Synteny get_random_segment(PRNG& prng, Synteny base, double offset_rate)
+    Synteny::Segment get_random_segment(
+        PRNG& prng,
+        std::size_t size,
+        double p_length)
     {
-        // Use a half less frequent loss because we eat from both sides
-        double half_rate = (1 + offset_rate) / 2;
-
-        std::geometric_distribution<std::size_t> get_start_offset{half_rate};
-        std::geometric_distribution<std::size_t> get_end_offset{half_rate};
-
-        auto total_length = base.size();
-        auto start_offset = get_start_offset(prng);
-        auto end_offset = get_end_offset(prng);
-
-        if (start_offset >= total_length || end_offset >= total_length
-            || start_offset >= total_length - end_offset - 1)
+        if (size == 0)
         {
-            return Synteny{};
+            // No way to get a non-empty segment
+            return Synteny::Segment(0, 0);
         }
 
-        return Synteny{
-            std::next(std::begin(base), start_offset),
-            std::prev(std::end(base), end_offset)};
+        // Randomly choose a length for the segment
+        std::geometric_distribution<std::size_t> get_length{p_length};
+        auto length = clamp(
+            get_length(prng) + 1,
+            static_cast<std::size_t>(1),
+            size);
+
+        // Randomly choose a starting point for the segment from the possible
+        // positions given the already chosen length
+        std::uniform_int_distribution<std::size_t> get_start{0, size - length};
+        auto start = get_start(prng);
+
+        return Synteny::Segment(start, start + length);
     }
 
     /**
@@ -75,7 +78,10 @@ namespace detail
      * @return Randomly rearranged synteny.
      */
     template<typename PRNG>
-    Synteny randomly_rearrange(PRNG& prng, Synteny base, double rearr_rate)
+    Synteny randomly_rearrange(
+        PRNG& prng,
+        Synteny base,
+        double rearr_rate)
     {
         std::geometric_distribution<int> get_no_of_pairs{rearr_rate};
         std::uniform_int_distribution<std::size_t> get_index{0, base.size() - 1};
@@ -110,40 +116,6 @@ namespace detail
     }
 
     /**
-     * Simulate the loss of a continuous gene family segment on a synteny.
-     *
-     * @param prng Pseudo-random number generator to use.
-     * @param base Original synteny.
-     * @param loss_leng_rate Parameter defining the geometric distribution
-     * of loss segments’ lengths.
-     * @return New synteny with a lost segment.
-     */
-    template<typename PRNG>
-    Synteny simulate_loss(PRNG& prng, Synteny base, double loss_leng_rate)
-    {
-        if (base.empty())
-        {
-            return base;
-        }
-
-        int total_length = static_cast<int>(base.size());
-
-        // Randomly choose a length for the loss, and add 1 if the loss
-        // is to be forced
-        std::geometric_distribution<int> get_length{loss_leng_rate};
-        auto length = clamp(get_length(prng) + 1, 1, total_length);
-
-        // Randomly choose a starting point for the loss from the possible
-        // positions given the already chosen length
-        std::uniform_int_distribution<int> get_start{0, total_length - length};
-        auto it_start = std::next(std::begin(base), get_start(prng));
-        auto it_end = std::next(it_start, length);
-
-        base.erase(it_start, it_end);
-        return base;
-    }
-
-    /**
      * Simulate the evolution of a synteny and generate a tree recording the
      * history of the simulated events. See parameter descriptions in the
      * header file.
@@ -156,6 +128,7 @@ namespace detail
         double dup_prob,
         double loss_prob,
         double loss_leng_rate,
+        double p_dup_length,
         double rearr_rate);
 
     /**
@@ -182,24 +155,39 @@ namespace detail
         double dup_prob,
         double loss_prob,
         double loss_leng_rate,
+        double p_dup_length,
         double rearr_rate)
     {
-        std::discrete_distribution<int> get_incur_loss{
+        std::discrete_distribution<int> choose_if_loss{
             1 - loss_prob, loss_prob};
 
-        if (get_incur_loss(prng) && !base.empty())
+        if (choose_if_loss(prng) && !base.empty())
         {
+            auto segment = get_random_segment(
+                prng, base.size(), loss_leng_rate);
+
             Event root;
             root.type = Event::Type::Loss;
-            root.synteny = simulate_loss(prng, base, loss_leng_rate);
+            root.synteny = base;
+            root.segment = segment;
 
             ::tree<Event> result{root};
 
-            if (!root.synteny.empty())
+            base.erase(
+                std::next(std::cbegin(base), segment.first),
+                std::next(std::cbegin(base), segment.second));
+
+            if (!base.empty())
             {
                 auto child = simulate_losses(
-                    prng, root.synteny, depth,
-                    dup_prob, loss_prob, loss_leng_rate, rearr_rate);
+                    prng,
+                    base,
+                    depth,
+                    dup_prob,
+                    loss_prob,
+                    loss_leng_rate,
+                    p_dup_length,
+                    rearr_rate);
 
                 result.append_child(result.begin(), child.begin());
             }
@@ -215,6 +203,7 @@ namespace detail
                 dup_prob,
                 loss_prob,
                 loss_leng_rate,
+                p_dup_length,
                 rearr_rate);
         }
     }
@@ -227,11 +216,12 @@ namespace detail
         double dup_prob,
         double loss_prob,
         double loss_leng_rate,
+        double p_dup_length,
         double rearr_rate)
     {
-        std::discrete_distribution<int> get_event_type{
+        std::discrete_distribution<int> choose_event_type{
             0, dup_prob, 1 - dup_prob, 0};
-        std::discrete_distribution<int> is_left_child{0.5, 0.5};
+        std::discrete_distribution<int> choose_segment_left_child{0.5, 0.5};
 
         Event root;
         root.synteny = base;
@@ -249,27 +239,38 @@ namespace detail
         }
         else
         {
-            auto type = static_cast<Event::Type>(get_event_type(prng));
+            auto type = static_cast<Event::Type>(choose_event_type(prng));
             root.type = type;
-            ::tree<Event> result{root};
 
             Synteny synteny_left = base;
             Synteny synteny_right = base;
 
-            // For segmental duplications, either one of the children
-            // has a synteny that is a segment of the parent one
-            // (this segment may be the whole synteny)
+            // For segmental duplications, either one of the children has a
+            // synteny that is a segment of the parent one (this segment
+            // may be the whole synteny)
             if (type == Event::Type::Duplication)
             {
-                if (is_left_child(prng))
+                if (choose_segment_left_child(prng))
                 {
-                    synteny_left = get_random_segment(
-                        prng, synteny_left, loss_leng_rate);
+                    auto segment = get_random_segment(
+                        prng, synteny_left.size(), p_dup_length);
+
+                    synteny_left = Synteny(
+                        std::next(std::cbegin(synteny_left), segment.first),
+                        std::next(std::cbegin(synteny_left), segment.second));
+
+                    root.segment = segment;
                 }
                 else
                 {
-                    synteny_right = get_random_segment(
-                        prng, synteny_right, loss_leng_rate);
+                    auto segment = get_random_segment(
+                        prng, synteny_right.size(), p_dup_length);
+
+                    synteny_right = Synteny(
+                        std::next(std::cbegin(synteny_right), segment.first),
+                        std::next(std::cbegin(synteny_right), segment.second));
+
+                    root.segment = segment;
                 }
             }
 
@@ -280,12 +281,15 @@ namespace detail
             // Apply random losses, which can be cascaded
             auto child_left = simulate_losses(
                 prng, synteny_left, depth - 1,
-                dup_prob, loss_prob, loss_leng_rate, rearr_rate);
+                dup_prob, loss_prob, loss_leng_rate,
+                p_dup_length, rearr_rate);
 
             auto child_right = simulate_losses(
                 prng, synteny_right, depth - 1,
-                dup_prob, loss_prob, loss_leng_rate, rearr_rate);
+                dup_prob, loss_prob, loss_leng_rate,
+                p_dup_length, rearr_rate);
 
+            ::tree<Event> result{root};
             result.append_child(result.begin(), child_left.begin());
             result.append_child(result.begin(), child_right.begin());
             return result;
@@ -304,5 +308,6 @@ template<typename PRNG>
         params.duplication_probability,
         params.loss_probability,
         params.loss_length_rate,
+        params.p_dup_length,
         params.rearrangement_rate);
 }

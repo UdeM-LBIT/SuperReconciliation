@@ -93,21 +93,57 @@ std::string event_to_graphviz(const Event& event, Synteny parent)
         break;
     }
 
-    result += "label=\"";
+    result += "label=<";
+    std::size_t index = 0;
 
-    if (event.type == Event::Type::Loss)
+    for (
+        auto it = std::begin(event.synteny);
+        it != std::end(event.synteny);
+        ++index, ++it)
     {
-        if (!event.synteny.empty())
+        if (index == event.segment.first)
         {
-            result += parent.difference(event.synteny);
+            switch (event.type)
+            {
+            case Event::Type::Duplication:
+                result += "<u>";
+                break;
+
+            case Event::Type::Loss:
+                result += "[";
+                break;
+
+            default:
+                break;
+            }
+        }
+
+        result += *it;
+
+        if (index + 1 == event.segment.second)
+        {
+            switch (event.type)
+            {
+            case Event::Type::Duplication:
+                result += "</u>";
+                break;
+
+            case Event::Type::Loss:
+                result += "]";
+                break;
+
+            default:
+                break;
+            }
+        }
+
+        if (std::next(it) != std::end(event.synteny))
+        {
+            result += " ";
         }
     }
-    else
-    {
-        result += event.synteny.difference(event.synteny);
-    }
 
-    result += "\"";
+    result += ">";
     return result;
 }
 
