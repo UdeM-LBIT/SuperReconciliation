@@ -60,46 +60,39 @@ bool read_arguments(Arguments& result, int argc, const char* argv[])
          "seed for the pseudo-random number generator. The special value 0 "
          "instructs the program to grab a random seed from one of the "
          "system’s entropy sources")
-
         ("base-size,s",
          po::value(&result.base_size)
             ->value_name("SIZE")
             ->default_value(5),
          "number of genes in the ancestral synteny from which the "
          "simulation will evolve")
-
         ("depth,H",
          po::value(&result.depth)
             ->value_name("SIZE")
             ->default_value(5),
          "maximum depth of events on a branch, not counting losses")
-
         ("p-dup,d",
          po::value(&result.p_dup)
             ->value_name("PROB")
             ->default_value(0.5),
          "probability for any given internal node to be a duplication")
-
         ("p-dup-length,D",
          po::value(&result.p_dup_length)
             ->value_name("PROB")
             ->default_value(0.3, "0.3"),
          "parameter of the geometric distribution of the lengths of "
          "segments in segmental duplications")
-
         ("p-loss,l",
          po::value(&result.p_loss)
             ->value_name("PROB")
             ->default_value(0.2),
          "probability for a loss under any given speciation node")
-
         ("p-loss-length,L",
          po::value(&result.p_loss_length)
             ->value_name("PROB")
             ->default_value(0.7, "0.7"),
          "parameter of the geometric distribution of the lengths of "
          "segments in segmental losses")
-
         ("p-rearr,R",
          po::value(&result.p_rearr)
             ->value_name("PROB")

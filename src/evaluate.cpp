@@ -1,9 +1,11 @@
 #include "algo/simulate.hpp"
 #include "algo/erase.hpp"
 #include "algo/super_reconciliation.hpp"
+#include "algo/unordered_super_reconciliation.hpp"
 #include "util/containers.hpp"
 #include "util/MultivaluedNumber.hpp"
 #include <boost/program_options.hpp>
+#include <cassert>
 #include <chrono>
 #include <fstream>
 #include <iomanip>
@@ -78,7 +80,16 @@ void evaluate(
         start = perf_clock::now();
     }
 
-    super_reconciliation(reconciled_tree);
+    if (params.p_rearr < 1.0)
+    {
+        // If rearrangements are allowed, we must use the unordered
+        // reconciliation algorithm.
+        unordered_super_reconciliation(reconciled_tree);
+    }
+    else
+    {
+        super_reconciliation(reconciled_tree);
+    }
 
     if (results.needs_duration)
     {
@@ -92,11 +103,8 @@ void evaluate(
         auto ref_score = get_dl_score(reference_tree);
         auto rec_score = get_dl_score(reconciled_tree);
 
-        if (ref_score < rec_score)
-        {
-            throw std::logic_error{
-                "Unexpected non-parcimonious reconciliation!"};
-        }
+        assert(ref_score >= rec_score
+                && "Unexpected non-parcimonious reconciliation!");
 
         results.dlscore = ref_score - rec_score;
     }
@@ -110,6 +118,7 @@ struct Arguments
 {
     std::string output;
     std::vector<std::string> metrics;
+
     unsigned sample_size;
     unsigned jobs;
 
@@ -144,7 +153,6 @@ bool read_arguments(Arguments& result, int argc, const char* argv[])
             ->value_name("PATH")
             ->required(),
          "path in which to create the output file")
-
         ("metrics,m",
          po::value(&result.metrics)
             ->value_name("METRIC")
@@ -156,13 +164,11 @@ bool read_arguments(Arguments& result, int argc, const char* argv[])
     po::options_description gen_opt_group{"General options"};
     gen_opt_group.add_options()
         ("help,h", "show this help message")
-
         ("sample-size,S",
          po::value(&result.sample_size)
             ->value_name("SIZE")
             ->default_value(1),
          "number of samples to take for each set of parameters")
-
         ("jobs,j",
          po::value(&result.jobs)
             ->value_name("JOBS")
@@ -183,39 +189,33 @@ bool read_arguments(Arguments& result, int argc, const char* argv[])
             ->default_value(5),
          "number of genes in the ancestral synteny from which the "
          "simulation will evolve")
-
         ("depth,H",
          po::value(&result.depth)
             ->value_name("SIZE")
             ->default_value(5),
          "maximum depth of events on a branch, not counting losses")
-
         ("p-dup,d",
          po::value(&result.p_dup)
             ->value_name("PROB")
             ->default_value(0.5),
          "probability for any given internal node to be a duplication")
-
         ("p-dup-length,D",
          po::value(&result.p_dup_length)
             ->value_name("PROB")
             ->default_value(0.3, "0.3"),
          "parameter of the geometric distribution of the lengths of "
          "segments in segmental duplications")
-
         ("p-loss,l",
          po::value(&result.p_loss)
             ->value_name("PROB")
             ->default_value(0.2),
          "probability for a loss under any given speciation node")
-
         ("p-loss-length,L",
          po::value(&result.p_loss_length)
             ->value_name("PROB")
             ->default_value(0.7, "0.7"),
          "parameter of the geometric distribution of the lengths of "
          "segments in segmental losses")
-
         ("p-rearr,R",
          po::value(&result.p_rearr)
             ->value_name("PROB")
@@ -312,6 +312,16 @@ int main(int argc, const char* argv[])
     if (args.jobs > 0)
     {
         omp_set_num_threads(args.jobs);
+    }
+
+    if (std::find_if(
+                std::cbegin(args.p_rearr.getValues()),
+                std::cend(args.p_rearr.getValues()),
+                [](double value) { return value < 1.0; })
+            != std::cend(args.p_rearr.getValues()))
+    {
+        std::cout << "Info: the unordered super-reconciliation algorithm "
+            "will be used for evaluation.\n";
     }
 
     ThreadLifecycle lifecycle;

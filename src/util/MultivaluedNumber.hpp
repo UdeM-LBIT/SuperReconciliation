@@ -85,7 +85,7 @@ public:
      *
      * @return List of contained values.
      */
-    Container getValues() const;
+    const Container& getValues() const;
 
     /**
      * Write a multivalued number to an output stream.

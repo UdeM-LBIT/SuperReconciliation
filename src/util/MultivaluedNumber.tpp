@@ -92,7 +92,7 @@ T MultivaluedNumber<T, Container>::operator*() const
 }
 
 template<typename T, typename Container>
-Container MultivaluedNumber<T, Container>::getValues() const
+const Container& MultivaluedNumber<T, Container>::getValues() const
 {
     return this->values;
 }
