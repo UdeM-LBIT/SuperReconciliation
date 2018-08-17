@@ -94,53 +94,68 @@ std::string event_to_graphviz(const Event& event, Synteny parent)
     }
 
     result += "label=<";
+
     std::size_t index = 0;
+    auto it = std::begin(event.synteny);
 
-    for (
-        auto it = std::begin(event.synteny);
-        it != std::end(event.synteny);
-        ++index, ++it)
+    while (true)
     {
-        if (index == event.segment.first)
+        if (event.segment.first != event.segment.second)
         {
-            switch (event.type)
+            if (index == event.segment.first)
             {
-            case Event::Type::Duplication:
-                result += "<u>";
-                break;
+                if (it != std::begin(event.synteny))
+                {
+                    result += " ";
+                }
 
-            case Event::Type::Loss:
-                result += "[";
-                break;
+                switch (event.type)
+                {
+                case Event::Type::Duplication:
+                    result += "<u>";
+                    break;
 
-            default:
-                break;
+                case Event::Type::Loss:
+                    result += "[";
+                    break;
+
+                default:
+                    break;
+                }
             }
+
+            if (index == event.segment.second)
+            {
+                switch (event.type)
+                {
+                case Event::Type::Duplication:
+                    result += "</u>";
+                    break;
+
+                case Event::Type::Loss:
+                    result += "]";
+                    break;
+
+                default:
+                    break;
+                }
+            }
+        }
+
+        if (it == std::end(event.synteny))
+        {
+            break;
+        }
+
+        if (index != event.segment.first && it != std::begin(event.synteny))
+        {
+            result += " ";
         }
 
         result += *it;
 
-        if (index + 1 == event.segment.second)
-        {
-            switch (event.type)
-            {
-            case Event::Type::Duplication:
-                result += "</u>";
-                break;
-
-            case Event::Type::Loss:
-                result += "]";
-                break;
-
-            default:
-                break;
-            }
-        }
-
-        if (std::next(it) != std::end(event.synteny))
-        {
-            result += " ";
-        }
+        ++it;
+        ++index;
     }
 
     result += ">";
