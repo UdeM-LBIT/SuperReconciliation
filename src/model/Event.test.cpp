@@ -65,7 +65,7 @@ TEST_CASE("Read a segmental loss event node from a tagged node")
     REQUIRE(event.type == Event::Type::Loss);
     REQUIRE(event.synteny == Synteny{"a", "b", "c", "d", "e", "f"});
     REQUIRE(event.segment.first == 1);
-    REQUIRE(event.segment.second == 5);
+    REQUIRE(event.segment.second == 4);
 }
 
 TEST_CASE("Read a speciation event node from a tagged node")
@@ -102,7 +102,7 @@ TEST_CASE("Read a duplication event node from a tagged node")
     REQUIRE(event.type == Event::Type::Duplication);
     REQUIRE(event.synteny == Synteny{"t", "e", "st", "sy", "n", "te", "n"});
     REQUIRE(event.segment.first == 2);
-    REQUIRE(event.segment.second == 6);
+    REQUIRE(event.segment.second == 5);
 }
 
 TEST_CASE("Read a duplication event node, missing segment, from a tagged node")
@@ -164,7 +164,7 @@ TEST_CASE("Write a segmental loss node to a tagged node")
     REQUIRE(tagged_node.length == Approx(0.));
     REQUIRE(tagged_node.tags == std::map<std::string, std::string>{
         {"event", "loss"},
-        {"segment", "2 - 3"},
+        {"segment", "2 - 4"},
     });
 }
 
@@ -197,6 +197,6 @@ TEST_CASE("Write a duplication event node to a tagged node")
     REQUIRE(tagged_node.length == Approx(0.));
     REQUIRE(tagged_node.tags == std::map<std::string, std::string>{
         {"event", "duplication"},
-        {"segment", "2 - 6"},
+        {"segment", "2 - 7"},
     });
 }
