@@ -65,7 +65,7 @@ Event::Event(const TaggedNode& tagnode)
         segment_tok >> end;
 
         this->segment.first = start;
-        this->segment.second = end + 1;
+        this->segment.second = end;
     }
 }
 
@@ -116,7 +116,7 @@ Event::operator TaggedNode() const
         std::ostringstream segment_as_str;
         segment_as_str
             << this->segment.first << " - "
-            << this->segment.second - 1;
+            << this->segment.second;
 
         result.tags.emplace(SEGMENT_KEY, segment_as_str.str());
     }
