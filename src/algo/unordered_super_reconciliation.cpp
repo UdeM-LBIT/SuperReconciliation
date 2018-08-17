@@ -123,13 +123,22 @@ void resolve(tree<Event>& tree, std::map<Event*, std::set<Gene>>& genes)
         parent != tree.end_post();
         ++parent)
     {
-        if (tree.number_of_children(parent) == 2)
+        auto genes_parent = genes.at(&*parent);
+
+        // Edge case: if we happen to find an internal node whose minimal
+        // set of families is empty, we can safely discard all its children
+        // because there can be no evolution from an empty set of genes
+        if (genes_parent.empty())
+        {
+            tree.erase_children(parent);
+            parent->type = Event::Type::Loss;
+        }
+        else if (tree.number_of_children(parent) == 2)
         {
             auto child_left = tree.child(parent, 0);
-            auto child_right = tree.child(parent, 1);
-
-            auto genes_parent = genes.at(&*parent);
             auto genes_left = genes.at(&*child_left);
+
+            auto child_right = tree.child(parent, 1);
             auto genes_right = genes.at(&*child_right);
 
             std::set<Gene> gene_union;
@@ -196,7 +205,8 @@ void resolve(tree<Event>& tree, std::map<Event*, std::set<Gene>>& genes)
 
             bool is_segmental_left = false;
 
-            if (synteny_child_left != synteny_parent)
+            if (synteny_child_left != synteny_parent
+                    && child_left->type != Event::Type::Loss)
             {
                 if (parent->type == Event::Type::Duplication)
                 {
@@ -219,17 +229,20 @@ void resolve(tree<Event>& tree, std::map<Event*, std::set<Gene>>& genes)
                 }
             }
 
-            if (parent->type == Event::Type::Duplication && !is_segmental_left)
+            if ((parent->type == Event::Type::Duplication && !is_segmental_left)
+                    || child_left->type == Event::Type::Loss)
             {
-                // If the left child has the exact same synteny as its parent,
-                // there are no incurred losses on the left. Therefore, we are
-                // free to choose any duplicated segment to better fit the
-                // right child. We know that s3 and s4 are empty, therefore
-                // the right synteny is `s1`. By chosing to duplicate the `s1`
-                // segment, we never incur any loss on the right.
+                // If the left child has the exact same synteny as its parent
+                // (or is a full loss), there are no additional incurred losses
+                // on the left. Therefore, we are free to choose any duplicated
+                // segment to better fit the right child. We know that s3 and s4
+                // are empty, therefore the right synteny is `s1`. By chosing to
+                // duplicate the `s1` segment, we never incur any loss on the
+                // right.
                 parent->segment.second = s1_size;
             }
-            else if (synteny_child_right != synteny_parent)
+            else if (synteny_child_right != synteny_parent
+                    && child_right->type != Event::Type::Loss)
             {
                 Event loss;
                 loss.type = Event::Type::Loss;
