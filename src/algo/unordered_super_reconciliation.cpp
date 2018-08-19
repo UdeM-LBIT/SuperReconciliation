@@ -1,5 +1,6 @@
 #include "../model/Event.hpp"
 #include "../util/ExtendedNumber.hpp"
+#include "../util/set.hpp"
 #include <algorithm>
 #include <map>
 #include <tree.hh>
@@ -7,17 +8,36 @@
 namespace
 {
 /**
+ * Hold genes and propagation information regarding a nodes in a tree
+ * (see the three passes below for a more in-depth explanation).
+ */
+struct TreeInfoValue
+{
+    // Contain the set of genes that must be present in the final
+    // synteny of this node so that the labeling is valid and minimal.
+    std::set<Gene> genes;
+
+    // Signal that this node should receive the same set of genes as
+    // its parent node because it would result in less losses.
+    bool should_propagate;
+};
+
+using TreeInfo = std::map<Event*, TreeInfoValue>;
+
+/**
  * Perform the initialization pass on the event tree.
  *
  * Compute, for each node, the minimal set of gene families that must
- * be present in its synteny.
+ * be present in its synteny and whether it should propagate or not.
  *
  * @param tree Input event tree, in which only the leaves are labelled.
- * @return Dictionary associating each node to its minimal set of genes.
+ * @return Dictionary associating each node to its genes and propagation
+ * information. In this pass, the gene sets are only the minimal sets
+ * required for the labeling to be valid.
  */
-std::map<Event*, std::set<Gene>> initialize(tree<Event>& tree)
+TreeInfo initialize(tree<Event>& tree)
 {
-    std::map<Event*, std::set<Gene>> genes;
+    TreeInfo info;
 
     for (
         auto parent = tree.begin_post();
@@ -26,57 +46,73 @@ std::map<Event*, std::set<Gene>> initialize(tree<Event>& tree)
     {
         if (tree.number_of_children(parent) == 0)
         {
-            genes.emplace(
-                &*parent,
+            info.emplace(&*parent, TreeInfoValue{
+                // A leaf simply contains all the genes that it was labeled
+                // with in the input
                 std::set<Gene>(
                     cbegin(parent->synteny),
-                    cend(parent->synteny)));
+                    cend(parent->synteny)),
+
+                // No leaves should be ever modified, so we should not
+                // propagate on them
+                /* should_propagate = */ false
+            });
+        }
+        else if (tree.number_of_children(parent) == 1)
+        {
+            throw new std::invalid_argument{"Unexpected unary node."};
         }
         else
         {
-            auto genes_left = genes.at(&*tree.child(parent, 0));
-            auto genes_right = genes.at(&*tree.child(parent, 1));
-            std::set<Gene> genes_union;
+            auto child_left = tree.child(parent, 0);
+            const auto& info_left = info.at(&*child_left);
 
-            std::set_union(
-                cbegin(genes_left), cend(genes_left),
-                cbegin(genes_right), cend(genes_right),
-                inserter(genes_union, end(genes_union)));
+            auto child_right = tree.child(parent, 1);
+            const auto& info_right = info.at(&*child_right);
 
-            genes.emplace(&*parent, genes_union);
+            auto genes_union = info_left.genes + info_right.genes;
+
+            info.emplace(&*parent, TreeInfoValue{
+                // An internal node must always contain all the genes that
+                // must belong to its children
+                genes_union,
+
+                // All cases in which it is more advantageous to propagate
+                // the parent synteny to this node
+                // TODO (mdelabre): refine those conditions
+                /* should_propagate = */
+                ((info_left.genes != genes_union
+                  || info_left.should_propagate)
+                 && (info_right.genes != genes_union
+                     || info_right.should_propagate))
+                || (parent->type == Event::Type::Duplication
+                        && (child_left->type == Event::Type::Loss
+                            || info_left.should_propagate
+                            || child_right->type == Event::Type::Loss
+                            || info_right.should_propagate))
+                || ((info_left.should_propagate
+                            || child_left->type == Event::Type::Loss)
+                        && (info_right.should_propagate
+                            || child_right->type == Event::Type::Loss))
+            });
         }
     }
 
-    return genes;
+    return info;
 }
 
 /**
  * Perform the propagation pass on the event tree.
  *
- * In prefix order, when the following structure is found in the tree:
- *
- *     x
- *    /\
- *   y …
- *  /\
- * z t
- *
- * where x, y, z and t are all different family sets (note that they are
- * required to be such as z, t ⊊ y ⊊ x), the parent node’s synteny is
- * propagated to its child, yielding the following result:
- *
- *     x
- *    /\
- *   x …
- *  /\
- * z t
- *
- * which saves the introduction of one unnecessary loss.
+ * For any node x which must be propagated, x’s parent synteny is copied
+ * as x’s synteny.
  *
  * @param tree Input event tree, in which only the leaves are labelled.
- * @param genes Dictionary associating each node to its minimal set of genes.
+ * @param info Dictionary associating each node to its genes and propagation
+ * information. After this pass, the gene sets minimize the number of losses
+ * that must be introduced by the resolution pass to make the labeling valid.
  */
-void propagate(tree<Event>& tree, std::map<Event*, std::set<Gene>>& genes)
+void propagate(tree<Event>& tree, TreeInfo& info)
 {
     for (
         auto parent = tree.begin();
@@ -88,19 +124,9 @@ void propagate(tree<Event>& tree, std::map<Event*, std::set<Gene>>& genes)
             child != tree.end(parent);
             ++child)
         {
-            if (tree.number_of_children(child) == 2)
+            if (info.at(&*child).should_propagate)
             {
-                auto child_left = tree.child(child, 0);
-                auto child_right = tree.child(child, 1);
-
-                if (
-                    genes.at(&*child_left) != genes.at(&*child)
-                    && genes.at(&*child_right) != genes.at(&*child)
-                    && genes.at(&*child) != genes.at(&*parent)
-                )
-                {
-                    genes.at(&*child) = genes.at(&*parent);
-                }
+                info.at(&*child).genes = info.at(&*parent).genes;
             }
         }
     }
@@ -113,17 +139,19 @@ void propagate(tree<Event>& tree, std::map<Event*, std::set<Gene>>& genes)
  * while introducing a minimal number of losses. Modify the tree to
  * insert the required losses and set syntenies.
  *
- * @param tree Input event tree, in which only the leaves are labelled.
- * @param genes Dictionary associating each node to its minimal set of genes.
+ * @param tree Input event tree, in which only the leaves are labelled. After
+ * this pass, all internal nodes are correctly labeled, losses are introduced
+ * where necessary and duplicated segments are specified.
+ * @param info Dictionary associating each node to its genes information.
  */
-void resolve(tree<Event>& tree, std::map<Event*, std::set<Gene>>& genes)
+void resolve(tree<Event>& tree, TreeInfo& info)
 {
     for (
         auto parent = tree.begin_post();
         parent != tree.end_post();
         ++parent)
     {
-        auto genes_parent = genes.at(&*parent);
+        const auto& genes_parent = info.at(&*parent).genes;
 
         // Edge case: if we happen to find an internal node whose minimal
         // set of families is empty, we can safely discard all its children
@@ -136,52 +164,25 @@ void resolve(tree<Event>& tree, std::map<Event*, std::set<Gene>>& genes)
         else if (tree.number_of_children(parent) == 2)
         {
             auto child_left = tree.child(parent, 0);
-            auto genes_left = genes.at(&*child_left);
+            const auto& genes_left = info.at(&*child_left).genes;
 
             auto child_right = tree.child(parent, 1);
-            auto genes_right = genes.at(&*child_right);
+            const auto& genes_right = info.at(&*child_right).genes;
 
-            std::set<Gene> gene_union;
-            Synteny s1, s2, s3, s4;
-
-            std::set_union(
-                cbegin(genes_left), cend(genes_left),
-                cbegin(genes_right), cend(genes_right),
-                inserter(gene_union, end(gene_union)));
-
-            // s1 := left inter right
-            std::set_intersection(
-                cbegin(genes_left), cend(genes_left),
-                cbegin(genes_right), cend(genes_right),
-                back_inserter(s1));
-
-            // s2 := left \ right
-            std::set_difference(
-                cbegin(genes_left), cend(genes_left),
-                cbegin(genes_right), cend(genes_right),
-                back_inserter(s2));
-
-            // s3 := parent \ (left union right)
-            std::set_difference(
-                cbegin(genes_parent), cend(genes_parent),
-                cbegin(gene_union), cend(gene_union),
-                back_inserter(s3));
-
-            // s4 := right \ left
-            std::set_difference(
-                cbegin(genes_right), cend(genes_right),
-                cbegin(genes_left), cend(genes_left),
-                back_inserter(s4));
-
+            auto s1 = genes_left & genes_right;
             auto s1_size = s1.size();
+
+            auto s2 = genes_left - genes_right;
             auto s2_size = s2.size();
+
+            auto s3 = genes_parent - (genes_left + genes_right);
             auto s3_size = s3.size();
+
+            auto s4 = genes_right - genes_left;
             auto s4_size = s4.size();
 
-            Synteny synteny_parent = s1;
-            Synteny synteny_child_left = s1;
-            Synteny synteny_child_right = s1;
-
+            // parent := s1 . s2 . s3 . s4
+            Synteny synteny_parent{std::cbegin(s1), std::cend(s1)};
             synteny_parent.insert(
                 std::end(synteny_parent),
                 std::cbegin(s2), std::cend(s2));
@@ -192,20 +193,22 @@ void resolve(tree<Event>& tree, std::map<Event*, std::set<Gene>>& genes)
                 std::end(synteny_parent),
                 std::cbegin(s4), std::cend(s4));
 
-            synteny_child_left.insert(
-                std::end(synteny_child_left),
+            // left := s1 . s2
+            Synteny synteny_left{std::cbegin(s1), std::cend(s1)};
+            synteny_left.insert(
+                std::end(synteny_left),
                 std::cbegin(s2), std::cend(s2));
 
-            synteny_child_right.insert(
-                std::end(synteny_child_right),
+            // right := s1 . s4
+            Synteny synteny_right{std::cbegin(s1), std::cend(s1)};
+            synteny_right.insert(
+                std::end(synteny_right),
                 std::cbegin(s4), std::cend(s4));
 
             parent->synteny = synteny_parent;
-            parent->segment = std::make_pair(0, s1_size + s2_size);
-
             bool is_segmental_left = false;
 
-            if (synteny_child_left != synteny_parent
+            if (synteny_left != synteny_parent
                     && child_left->type != Event::Type::Loss)
             {
                 if (parent->type == Event::Type::Duplication)
@@ -215,6 +218,7 @@ void resolve(tree<Event>& tree, std::map<Event*, std::set<Gene>>& genes)
                     // duplicate the `s1 . s2` segment only. This removes
                     // the need to introduce a loss for the left child.
                     is_segmental_left = true;
+                    parent->segment = std::make_pair(0, s1_size + s2_size);
                 }
                 else
                 {
@@ -229,19 +233,28 @@ void resolve(tree<Event>& tree, std::map<Event*, std::set<Gene>>& genes)
                 }
             }
 
-            if ((parent->type == Event::Type::Duplication && !is_segmental_left)
-                    || child_left->type == Event::Type::Loss)
+            if (parent->type == Event::Type::Duplication && !is_segmental_left)
             {
                 // If the left child has the exact same synteny as its parent
                 // (or is a full loss), there are no additional incurred losses
                 // on the left. Therefore, we are free to choose any duplicated
-                // segment to better fit the right child. We know that s3 and s4
-                // are empty, therefore the right synteny is `s1`. By chosing to
-                // duplicate the `s1` segment, we never incur any loss on the
-                // right.
-                parent->segment.second = s1_size;
+                // segment to better fit the right child.
+                if (child_left->type == Event::Type::Loss)
+                {
+                    // If the left child is a full loss, `s1` is necessarily
+                    // empty, therefore `right = s4`
+                    parent->segment = std::make_pair(
+                        s1_size + s2_size + s3_size,
+                        s1_size + s2_size + s3_size + s4_size);
+                }
+                else
+                {
+                    // If the left child is exactly equal to its parent, `s4`
+                    // is necessarily empty, therefore `right = s1`
+                    parent->segment = std::make_pair(0, s1_size);
+                }
             }
-            else if (synteny_child_right != synteny_parent
+            else if (synteny_right != synteny_parent
                     && child_right->type != Event::Type::Loss)
             {
                 Event loss;
@@ -259,7 +272,7 @@ void resolve(tree<Event>& tree, std::map<Event*, std::set<Gene>>& genes)
 
 void unordered_super_reconciliation(tree<Event>& tree)
 {
-    auto genes = initialize(tree);
-    propagate(tree, genes);
-    resolve(tree, genes);
+    auto info = initialize(tree);
+    propagate(tree, info);
+    resolve(tree, info);
 }
