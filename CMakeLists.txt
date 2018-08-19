@@ -67,6 +67,7 @@ add_executable(tests
     src/model/Synteny.test.cpp
     src/util/ExtendedNumber.test.cpp
     src/util/MultivaluedNumber.test.cpp
+    src/util/set.test.cpp
 )
 
 target_link_libraries(tests common)
