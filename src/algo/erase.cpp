@@ -5,6 +5,8 @@ void erase_tree(
     ::tree<Event>::sibling_iterator root,
     bool is_root)
 {
+    root->segment = Synteny::NoSegment;
+
     switch (root->type)
     {
     case Event::Type::None:

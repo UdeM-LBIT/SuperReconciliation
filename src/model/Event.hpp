@@ -58,7 +58,7 @@ struct Event
      * Segment of the current synteny which is involved in this event.
      * The meaning of this interval is specific to each event type.
      */
-    Synteny::Segment segment;
+    Synteny::Segment segment = Synteny::NoSegment;
 
     Event() = default;
 

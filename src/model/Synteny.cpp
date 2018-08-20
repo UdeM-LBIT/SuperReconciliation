@@ -2,6 +2,8 @@
 #include <sstream>
 #include <stdexcept>
 
+constexpr Synteny::Segment Synteny::NoSegment;
+
 Synteny Synteny::generateDummy(unsigned long length)
 {
     unsigned long i = 0;

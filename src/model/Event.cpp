@@ -43,8 +43,6 @@ Event::Event(const TaggedNode& tagnode)
         }
     }
 
-    this->segment = Synteny::Segment(0, this->synteny.size());
-
     // An empty leaf node is actually a full loss node
     if (this->type == Type::None && this->synteny.empty())
     {
@@ -110,8 +108,8 @@ Event::operator TaggedNode() const
         result.name = synteny_as_str;
     }
 
-    if ((this->type == Type::Loss && !this->synteny.empty())
-            || (this->type == Type::Duplication && !this->synteny.empty()))
+    if (this->segment != Synteny::NoSegment
+            && (this->type == Type::Loss || this->type == Type::Duplication))
     {
         std::ostringstream segment_as_str;
         segment_as_str

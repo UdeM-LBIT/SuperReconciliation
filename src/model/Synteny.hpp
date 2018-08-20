@@ -22,6 +22,14 @@ public:
     using Segment = std::pair<std::size_t, std::size_t>;
 
     /**
+     * Special, invalid segment, that represents the lack of
+     * information about a segment.
+     */
+    static constexpr Segment NoSegment = Segment{
+        static_cast<std::size_t>(-1),
+        static_cast<std::size_t>(-1)};
+
+    /**
      * Generate a dummy synteny of given length, with incrementing
      * alphabetic gene families.
      *
