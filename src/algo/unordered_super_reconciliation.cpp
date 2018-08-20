@@ -79,21 +79,28 @@ TreeInfo initialize(tree<Event>& tree)
 
                 // All cases in which it is more advantageous to propagate
                 // the parent synteny to this node
-                // TODO (mdelabre): refine those conditions
                 /* should_propagate = */
-                ((info_left.genes != genes_union
-                  || info_left.should_propagate)
+                (
+                    // For any kind of node, if both of its children already
+                    // generate a loss, propagate or are full losses, it should
+                    // propagate from its parent: any difference will be either
+                    // merged into already-existing losses or be propagated,
+                    // yielding at worst a same-cost solution and at best a
+                    // more parsimonious solution
+                    (info_left.genes != genes_union
+                        || info_left.should_propagate
+                        || child_left->type == Event::Type::Loss)
                  && (info_right.genes != genes_union
-                     || info_right.should_propagate))
-                || (parent->type == Event::Type::Duplication
-                        && (child_left->type == Event::Type::Loss
-                            || info_left.should_propagate
-                            || child_right->type == Event::Type::Loss
-                            || info_right.should_propagate))
-                || ((info_left.should_propagate
-                            || child_left->type == Event::Type::Loss)
-                        && (info_right.should_propagate
-                            || child_right->type == Event::Type::Loss))
+                        || info_right.should_propagate
+                        || child_right->type == Event::Type::Loss))
+                || (
+                    // For duplications, if any child is a full loss or
+                    // propagates, it is always more advantageous to propagate
+                    parent->type == Event::Type::Duplication
+                 && (child_left->type == Event::Type::Loss
+                        || info_left.should_propagate
+                        || child_right->type == Event::Type::Loss
+                        || info_right.should_propagate))
             });
         }
     }
