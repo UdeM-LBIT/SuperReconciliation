@@ -1,4 +1,4 @@
-#include "io/nhx_parser.hpp"
+#include "io/nhx.hpp"
 #include "io/util.hpp"
 #include "util/tree.hpp"
 #include "model/Synteny.hpp"

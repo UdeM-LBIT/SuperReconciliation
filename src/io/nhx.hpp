@@ -1,5 +1,5 @@
-#ifndef IO_NHX_PARSER_HPP
-#define IO_NHX_PARSER_HPP
+#ifndef IO_NHX_HPP
+#define IO_NHX_HPP
 
 #include <map>
 #include <string>
@@ -59,4 +59,4 @@ struct TaggedNode
  */
 std::string stringify_nhx_tree(const ::tree<TaggedNode>&);
 
-#endif // IO_NHX_PARSER_HPP
+#endif // IO_NHX_HPP

@@ -1,5 +1,5 @@
 #include "Event.hpp"
-#include "../io/nhx_parser.hpp"
+#include "../io/nhx.hpp"
 #include <catch.hpp>
 
 TEST_CASE("Read a leaf node from a tagged node")

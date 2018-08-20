@@ -1,6 +1,6 @@
 #include "algo/super_reconciliation.hpp"
 #include "algo/unordered_super_reconciliation.hpp"
-#include "io/nhx_parser.hpp"
+#include "io/nhx.hpp"
 #include "io/util.hpp"
 #include "util/tree.hpp"
 #include <boost/program_options.hpp>
@@ -16,7 +16,7 @@ namespace po = boost::program_options;
  */
 struct Arguments
 {
-    bool is_unordered;
+    bool use_unordered;
     std::string input_path;
     std::string output_path;
 };
@@ -38,8 +38,8 @@ bool read_arguments(Arguments& result, int argc, const char* argv[])
     root.add_options()
         ("help,h", "show this help message")
         ("unordered,U",
-         po::bool_switch(&result.is_unordered),
-         "compute an unordered super-reconciliation")
+         po::bool_switch(&result.use_unordered),
+         "use the unordered super-reconciliation algorithm")
         ("input,I",
          po::value(&result.input_path)
             ->value_name("PATH")
@@ -89,7 +89,7 @@ int main(int argc, const char* argv[])
 
     auto event_tree = tree_cast<TaggedNode, Event>(input_tree);
 
-    if (args.is_unordered)
+    if (args.use_unordered)
     {
         unordered_super_reconciliation(event_tree);
     }

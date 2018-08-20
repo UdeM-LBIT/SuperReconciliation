@@ -19,7 +19,7 @@ add_library(common
     src/algo/erase.cpp
     src/algo/super_reconciliation.cpp
     src/algo/unordered_super_reconciliation.cpp
-    src/io/nhx_parser.cpp
+    src/io/nhx.cpp
     src/io/util.cpp
     src/model/Event.cpp
     src/model/Synteny.cpp
@@ -62,7 +62,7 @@ target_include_directories(viz PUBLIC ${Boost_INCLUDE_DIR})
 # `tests` executable
 add_executable(tests
     src/tests.cpp
-    src/io/nhx_parser.test.cpp
+    src/io/nhx.test.cpp
     src/model/Event.test.cpp
     src/model/Synteny.test.cpp
     src/util/ExtendedNumber.test.cpp

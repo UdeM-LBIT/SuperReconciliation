@@ -1,4 +1,4 @@
-#include "nhx_parser.hpp"
+#include "nhx.hpp"
 #include <catch.hpp>
 
 TEST_CASE("Parse NHX trees")
@@ -193,4 +193,9 @@ TEST_CASE("Parse NHX trees")
         ++it;
         REQUIRE(it == tree.end());
     }
+}
+
+TEST_CASE("Serialise NHX trees")
+{
+    // TODO (mdelabre): test NHX serialization
 }

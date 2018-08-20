@@ -1,5 +1,5 @@
 #include "Event.hpp"
-#include "../io/nhx_parser.hpp"
+#include "../io/nhx.hpp"
 
 static const char* EVENT_KEY = "event";
 static const char* SEGMENT_KEY = "segment";

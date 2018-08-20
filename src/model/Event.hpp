@@ -1,7 +1,7 @@
 #ifndef MODEL_EVENT_HPP
 #define MODEL_EVENT_HPP
 
-#include "../io/nhx_parser.hpp"
+#include "../io/nhx.hpp"
 #include "Synteny.hpp"
 #include <utility>
 

@@ -1,4 +1,4 @@
-#include "nhx_parser.hpp"
+#include "nhx.hpp"
 #include <tree.hh>
 #include <boost/fusion/include/std_pair.hpp>
 #include <boost/spirit/include/qi.hpp>
