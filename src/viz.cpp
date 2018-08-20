@@ -70,7 +70,7 @@ bool read_arguments(Arguments& result, int argc, const char* argv[])
     return true;
 }
 
-std::string event_to_graphviz(const Event& event, Synteny parent)
+std::string event_to_graphviz(const Event& event)
 {
     std::string result;
 
@@ -208,7 +208,7 @@ std::string event_tree_to_graphviz(const tree<Event>& tree)
         // We use a node’s address in memory as a unique identifier
         result += "    "
             + std::to_string(reinterpret_cast<unsigned long long int>(&*it))
-            + " [" + event_to_graphviz(*it, parent_synteny) + "];\n";
+            + " [" + event_to_graphviz(*it) + "];\n";
     }
 
     for (typename ::tree<Event>::sibling_iterator it = tree.begin();

@@ -6,6 +6,8 @@ TEST_CASE("Read a leaf node from a tagged node")
 {
     TaggedNode tagged_node{
         "a b c d e f", // name
+        0.,
+        {},
     };
 
     Event event = tagged_node;
@@ -20,6 +22,8 @@ TEST_CASE("Read a full loss event node from a tagged node")
 {
     TaggedNode tagged_node{
         "     ", // name
+        0.,
+        {},
     };
 
     Event event = tagged_node;
