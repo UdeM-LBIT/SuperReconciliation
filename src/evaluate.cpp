@@ -4,6 +4,8 @@
 #include "algo/unordered_super_reconciliation.hpp"
 #include "util/containers.hpp"
 #include "util/MultivaluedNumber.hpp"
+#include "util/tree.hpp"
+#include "io/nhx.hpp"
 #include <boost/program_options.hpp>
 #include <cassert>
 #include <chrono>
@@ -54,12 +56,15 @@ struct EvaluationResults
  * input under the given set of simulation parameters.
  *
  * @param prng Pseudo-random number generator to use for the simulation.
+ * @param use_unordered Whether to use the unordered reconciliation
+ * algorithm (if true) or not (if false).
  * @param results Input/output argument for the metrics.
  * @param params Simulation parameters.
  */
 template<typename PRNG>
 void evaluate(
     PRNG& prng,
+    bool use_unordered,
     EvaluationResults& results,
     SimulationParams& params)
 {
@@ -80,10 +85,8 @@ void evaluate(
         start = perf_clock::now();
     }
 
-    if (params.p_rearr < 1.0)
+    if (use_unordered)
     {
-        // If rearrangements are allowed, we must use the unordered
-        // reconciliation algorithm.
         unordered_super_reconciliation(reconciled_tree);
     }
     else
@@ -103,8 +106,23 @@ void evaluate(
         auto ref_score = get_dl_score(reference_tree);
         auto rec_score = get_dl_score(reconciled_tree);
 
-        assert(ref_score >= rec_score
-                && "Unexpected non-parcimonious reconciliation!");
+        if (ref_score < rec_score)
+        {
+            // If the reconciled tree is less parsimonious than what
+            // we started with, there is a flaw in the algorithm
+            auto ref_tree = tree_cast<Event, TaggedNode>(reference_tree);
+            auto ref_tree_nhx = stringify_nhx_tree(ref_tree);
+
+            auto rec_tree = tree_cast<Event, TaggedNode>(reconciled_tree);
+            auto rec_tree_nhx = stringify_nhx_tree(rec_tree);
+
+            throw std::runtime_error{
+                "The reconciled tree is less parsimonious than the reference "
+                    "tree.\n\nReference tree (DL-score = "
+                    + std::to_string(ref_score) + "):\n" + ref_tree_nhx
+                    + "\n\nReconciled tree (DL-score = "
+                    + std::to_string(rec_score) + "):\n" + rec_tree_nhx};
+        }
 
         results.dlscore = ref_score - rec_score;
     }
@@ -119,6 +137,7 @@ struct Arguments
     std::string output;
     std::vector<std::string> metrics;
 
+    bool use_unordered;
     unsigned sample_size;
     unsigned jobs;
 
@@ -164,6 +183,9 @@ bool read_arguments(Arguments& result, int argc, const char* argv[])
     po::options_description gen_opt_group{"General options"};
     gen_opt_group.add_options()
         ("help,h", "show this help message")
+        ("unordered,U",
+         po::bool_switch(&result.use_unordered),
+         "use the unordered super-reconciliation algorithm")
         ("sample-size,S",
          po::value(&result.sample_size)
             ->value_name("SIZE")
@@ -314,16 +336,6 @@ int main(int argc, const char* argv[])
         omp_set_num_threads(args.jobs);
     }
 
-    if (std::find_if(
-                std::cbegin(args.p_rearr.getValues()),
-                std::cend(args.p_rearr.getValues()),
-                [](double value) { return value < 1.0; })
-            != std::cend(args.p_rearr.getValues()))
-    {
-        std::cout << "Info: the unordered super-reconciliation algorithm "
-            "will be used for evaluation.\n";
-    }
-
     ThreadLifecycle lifecycle;
     bool needs_dlscore = contains(args.metrics, "dlscore"s);
     bool needs_duration = contains(args.metrics, "duration"s);
@@ -334,6 +346,10 @@ int main(int argc, const char* argv[])
     // For each set of parameters, store the index in the results array
     // at which measurements are stored
     std::unordered_map<SimulationParams, std::size_t> find_params_index;
+
+    // If at least one evaluation fails, this flag is set to true to
+    // signal other threads to stop computations
+    bool has_failed = false;
 
     // Track task progression
     unsigned long performed_tasks = 0;
@@ -353,7 +369,8 @@ int main(int argc, const char* argv[])
             lifecycle, args, total_tasks,                                      \
             needs_dlscore, needs_duration)                                     \
         shared(                                                                \
-            results, find_params_index, performed_tasks)                       \
+            results, find_params_index, performed_tasks,                       \
+            has_failed)                                                        \
         default(none)                                                          \
         collapse(8) schedule(dynamic)
     for (unsigned sample_id = 0; sample_id < args.sample_size; ++sample_id)
@@ -393,6 +410,14 @@ int main(int argc, const char* argv[])
         p_rearr < args.p_rearr.end();
         ++p_rearr)
     {
+        if (has_failed)
+        {
+            // Directly exiting OpenMP blocks is not allowed. Therefore, if
+            // one of the processing threads fails, it sets this flag and all
+            // other iterations are skipped.
+            continue;
+        }
+
         SimulationParams sample_params;
         sample_params.base = Synteny::generateDummy(*base_size);
         sample_params.depth = *depth;
@@ -406,7 +431,17 @@ int main(int argc, const char* argv[])
         sample_info.needs_dlscore = needs_dlscore;
         sample_info.needs_duration = needs_duration;
 
-        evaluate(lifecycle.prng, sample_info, sample_params);
+        try
+        {
+            evaluate(
+                lifecycle.prng, args.use_unordered,
+                sample_info, sample_params);
+        }
+        catch (const std::exception& err)
+        {
+            has_failed = true;
+            std::cout << "\nError: " << err.what() << "\n";
+        }
 
         #pragma omp critical
         {
@@ -459,7 +494,14 @@ int main(int argc, const char* argv[])
         }
     }}}}}}}}
 
-    std::ofstream output(args.output);
-    output << results;
-    return EXIT_SUCCESS;
+    if (has_failed)
+    {
+        return EXIT_FAILURE;
+    }
+    else
+    {
+        std::ofstream output(args.output);
+        output << results;
+        return EXIT_SUCCESS;
+    }
 }
