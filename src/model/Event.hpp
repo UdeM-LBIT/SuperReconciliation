@@ -97,4 +97,14 @@ std::ostream& operator<<(std::ostream&, const Event::Type&);
  */
 std::ostream& operator<<(std::ostream&, const Event&);
 
+/**
+ * Check whether two events are equal or not.
+ *
+ * @param lhs First event.
+ * @param rhs Second event.
+ * @return True if and only if both events have the same synteny,
+ * event type and segment when applicable (losses and duplications).
+ */
+bool operator==(const Event&, const Event&);
+
 #endif // MODEL_EVENT_HPP

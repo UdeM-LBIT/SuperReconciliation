@@ -145,6 +145,33 @@ std::ostream& operator<<(std::ostream& out, const Event::Type& type)
 
 std::ostream& operator<<(std::ostream& out, const Event& event)
 {
-    return out << "{type=" << event.type << ",synteny="
-        << event.synteny << "}";
+    out << "{type=" << event.type
+        << ", synteny=\"" << event.synteny << "\"";
+
+    if ((event.type == Event::Type::Duplication
+                || event.type == Event::Type::Loss)
+            && event.segment != Synteny::NoSegment)
+    {
+        out << ", segment=[" << event.segment.first
+            << " - " << event.segment.second << "[";
+    }
+
+    return out << "}";
+}
+
+bool operator==(const Event& lhs, const Event& rhs)
+{
+    if (lhs.type != rhs.type)
+    {
+        return false;
+    }
+
+    if ((lhs.type == Event::Type::Duplication
+                || lhs.type == Event::Type::Loss)
+            && lhs.segment != rhs.segment)
+    {
+        return false;
+    }
+
+    return lhs.synteny == rhs.synteny;
 }
