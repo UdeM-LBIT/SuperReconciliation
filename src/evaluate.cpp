@@ -370,7 +370,7 @@ int main(int argc, const char* argv[])
             needs_dlscore, needs_duration)                                     \
         shared(                                                                \
             results, find_params_index, performed_tasks,                       \
-            has_failed)                                                        \
+            std::cout, has_failed)                                             \
         default(none)                                                          \
         collapse(8) schedule(dynamic)
     for (unsigned sample_id = 0; sample_id < args.sample_size; ++sample_id)
