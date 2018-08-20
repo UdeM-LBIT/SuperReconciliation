@@ -62,6 +62,7 @@ target_include_directories(viz PUBLIC ${Boost_INCLUDE_DIR})
 # `tests` executable
 add_executable(tests
     src/tests.cpp
+    src/algo/unordered_super_reconciliation.test.cpp
     src/io/nhx.test.cpp
     src/model/Event.test.cpp
     src/model/Synteny.test.cpp
