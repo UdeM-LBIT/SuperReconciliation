@@ -18,6 +18,9 @@ parser.add_argument('y', action='store',
 parser.add_argument('output', action='store',
     help='path in which to create the output plot')
 
+parser.add_argument('--kind', '-k', action='store',
+    choices=['box', 'average'], default='box',
+    help='what kind of plot to create')
 parser.add_argument('--log-scale', '-l', action='store_true',
     help='create a log scale')
 parser.add_argument('--semilog-x', '-X', action='store_true',
@@ -34,8 +37,8 @@ parser.add_argument('--fit-exp', action='store_true',
 args = parser.parse_args()
 
 xlabels = {
-    'synteny_size': 'Size of the ancestral synteny',
-    'event_depth': 'Depth of the input tree'}
+    'base_size': 'Size of the ancestral synteny',
+    'depth': 'Depth of the input tree'}
 
 ylabels = {
     'dlscore': r'\emph{DL-score}',
@@ -57,6 +60,10 @@ with open(args.input, 'r') as in_file:
 
         values.append(value_normalized)
 
+# Sort values on the x-axis
+positions, values = zip(*sorted(zip(positions, values)))
+
+# Plot appearance configuration
 plt.rc('font', family='serif')
 plt.rc('text', usetex=True)
 plt.rc('figure', autolayout=True)
@@ -115,5 +122,12 @@ if args.semilog_x or args.log_scale:
 if args.semilog_y or args.log_scale:
     plt.yscale('log')
 
-box = plt.boxplot(values, positions=positions)
+# Show grid
+plt.grid(color='lightgray')
+
+if args.kind == 'box':
+    plt.boxplot(values, positions=positions)
+elif args.kind == 'average':
+    plt.plot(positions, avg_values)
+
 plt.savefig(args.output)
