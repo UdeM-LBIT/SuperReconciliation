@@ -59,7 +59,7 @@ For example, the following NHX string represents one of the erased synteny trees
 
 #### `reconcile`
 
-This is the main program. It takes an erased supertree on standard input and outputs the inferred tree based on the Super-Reconciliation method. This implements the main algorithm of the paper.
+This is the main program. It takes an erased supertree on standard input and outputs the inferred tree based on the Super-Reconciliation method (either unordered or ordered). This implements the main algorithm of the paper.
 
 #### `simulate`
 
@@ -99,4 +99,50 @@ Simulate one evolutionary history and output three trees:
         >(./reconcile | ./viz | dot -Tpdf >! tree-reconciled.pdf) \
     ) \
     | ./viz | dot -Tpdf >! tree-reference.pdf
+```
+
+### Reproducing results
+
+Raw data used for the publication can be found in the JSON format in the `tools/results` directory. This directory also contains a simple Python script for plotting results.
+
+To recreate those files:
+
+```sh
+# ordered-by-depth: Test the Super-Reconciliation on varying
+# input tree depths
+./build/Release/evaluate \
+	--jobs <NUMBER_OF_CORES_TO_USE> \
+	--sample-size 500 \
+	--depth '[1:14]' \
+	--metrics duration --metrics dlscore \
+       	ordered-by-depth.json
+
+# ordered-by-length: Test the Super-Reconciliation on varying
+# ancestral synteny lengths
+./build/Release/evaluate \
+	--jobs <NUMBER_OF_CORES_TO_USE> \
+	--sample-size 500 \
+	--base-size '[1:14]' \
+	--metrics duration --metrics dlscore \
+       	ordered-by-length.json
+
+# unordered-by-depth: Test the Unordered Super-Reconciliation
+# on varying input tree depths
+./build/Release/evaluate \
+	--jobs <NUMBER_OF_CORES_TO_USE> \
+	--sample-size 500 \
+	--depth '[1:14]' \
+	--metrics duration --metrics dlscore \
+	--unordered --p-rearr 0.7 \
+       	unordered-by-depth.json
+
+# unordered-by-length: Test the Unordered Super-Reconciliation
+# on varying ancestral synteny lengths
+./build/Release/evaluate \
+	--jobs <NUMBER_OF_CORES_TO_USE> \
+	--sample-size 250 \
+	--base-size '[1:500]' \
+	--metrics duration --metrics dlscore \
+	--unordered --p-rearr 0.7 \
+       	unordered-by-length.json
 ```
